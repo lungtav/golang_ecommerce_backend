@@ -16,9 +16,9 @@ insert into users (email, password_hash, name) values ($1, $2, $3) returning id,
 `
 
 type CreateUserParams struct {
-	Email        string
-	PasswordHash string
-	Name         string
+	Email        string `json:"email"`
+	PasswordHash string `json:"password_hash"`
+	Name         string `json:"name"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -41,11 +41,11 @@ select id, name, email, password_hash, email_verified_at from users where email 
 `
 
 type GetUserByEmailRow struct {
-	ID              pgtype.UUID
-	Name            string
-	Email           string
-	PasswordHash    string
-	EmailVerifiedAt pgtype.Timestamptz
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	Email           string             `json:"email"`
+	PasswordHash    string             `json:"password_hash"`
+	EmailVerifiedAt pgtype.Timestamptz `json:"email_verified_at"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -66,8 +66,8 @@ update users set email_verified_at = $1 where email =$2
 `
 
 type VerifyUserParams struct {
-	EmailVerifiedAt pgtype.Timestamptz
-	Email           string
+	EmailVerifiedAt pgtype.Timestamptz `json:"email_verified_at"`
+	Email           string             `json:"email"`
 }
 
 func (q *Queries) VerifyUser(ctx context.Context, arg VerifyUserParams) error {

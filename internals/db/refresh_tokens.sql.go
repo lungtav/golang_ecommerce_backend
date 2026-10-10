@@ -16,8 +16,8 @@ insert into refresh_tokens (token_hash, user_id) values ($1, $2) returning id, t
 `
 
 type CreateRefreshTokenParams struct {
-	TokenHash string
-	UserID    pgtype.UUID
+	TokenHash string      `json:"token_hash"`
+	UserID    pgtype.UUID `json:"user_id"`
 }
 
 func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error) {
@@ -40,10 +40,10 @@ select token_hash, revoked_at, expires_at, user_id from refresh_tokens where tok
 `
 
 type GetRefreshTokenRow struct {
-	TokenHash string
-	RevokedAt pgtype.Timestamptz
-	ExpiresAt pgtype.Timestamptz
-	UserID    pgtype.UUID
+	TokenHash string             `json:"token_hash"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UserID    pgtype.UUID        `json:"user_id"`
 }
 
 func (q *Queries) GetRefreshToken(ctx context.Context, tokenHash string) (GetRefreshTokenRow, error) {

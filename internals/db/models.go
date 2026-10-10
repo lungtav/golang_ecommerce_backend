@@ -9,128 +9,128 @@ import (
 )
 
 type Cart struct {
-	ID        pgtype.UUID
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	UserID    pgtype.UUID
+	ID        pgtype.UUID        `json:"id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	UserID    pgtype.UUID        `json:"user_id"`
 }
 
 type CartItem struct {
-	ProductID        pgtype.UUID
-	ProductVariantID pgtype.UUID
-	CartID           pgtype.UUID
-	Quantity         int32
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
+	ProductID        pgtype.UUID        `json:"product_id"`
+	ProductVariantID pgtype.UUID        `json:"product_variant_id"`
+	CartID           pgtype.UUID        `json:"cart_id"`
+	Quantity         int32              `json:"quantity"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Category struct {
-	ID        pgtype.UUID
-	Name      string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	ID        pgtype.UUID        `json:"id"`
+	Name      string             `json:"name"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Inventory struct {
-	ProductVariantID pgtype.UUID
-	StoreID          pgtype.UUID
-	Quantity         int32
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
+	ProductVariantID pgtype.UUID        `json:"product_variant_id"`
+	StoreID          pgtype.UUID        `json:"store_id"`
+	Quantity         int32              `json:"quantity"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Order struct {
-	ID        pgtype.UUID
-	UserID    pgtype.UUID
-	Status    string
-	Amount    int32
-	Currency  string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Status    string             `json:"status"`
+	Amount    int32              `json:"amount"`
+	Currency  string             `json:"currency"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type OrderItem struct {
-	ProductID        pgtype.UUID
-	ProductVariantID pgtype.UUID
-	OrderID          pgtype.UUID
-	Quantity         int32
-	CreatedAt        pgtype.Timestamptz
+	ProductID        pgtype.UUID        `json:"product_id"`
+	ProductVariantID pgtype.UUID        `json:"product_variant_id"`
+	OrderID          pgtype.UUID        `json:"order_id"`
+	Quantity         int32              `json:"quantity"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 }
 
 type Payment struct {
-	ID                pgtype.UUID
-	OrderID           pgtype.UUID
-	Provider          string
-	ProviderPaymentID string
-	Currency          string
-	Amount            int32
-	Status            string
-	PaymentMethod     interface{}
-	PaidAt            pgtype.Timestamptz
-	CreatedAt         pgtype.Timestamptz
-	UpdatedAt         pgtype.Timestamptz
+	ID                pgtype.UUID        `json:"id"`
+	OrderID           pgtype.UUID        `json:"order_id"`
+	Provider          string             `json:"provider"`
+	ProviderPaymentID string             `json:"provider_payment_id"`
+	Currency          string             `json:"currency"`
+	Amount            int32              `json:"amount"`
+	Status            string             `json:"status"`
+	PaymentMethod     interface{}        `json:"payment_method"`
+	PaidAt            pgtype.Timestamptz `json:"paid_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Product struct {
-	ID          pgtype.UUID
-	StoreID     pgtype.UUID
-	Name        string
-	Status      string
-	Description pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	ID          pgtype.UUID        `json:"id"`
+	StoreID     pgtype.UUID        `json:"store_id"`
+	Name        string             `json:"name"`
+	Status      string             `json:"status"`
+	Description pgtype.Text        `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type ProductCategory struct {
-	ProductID  pgtype.UUID
-	CategoryID pgtype.UUID
-	CreatedAt  pgtype.Timestamptz
+	ProductID  pgtype.UUID        `json:"product_id"`
+	CategoryID pgtype.UUID        `json:"category_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type ProductImage struct {
-	ID               pgtype.UUID
-	ProductVariantID pgtype.UUID
-	ImageUrl         string
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
+	ID               pgtype.UUID        `json:"id"`
+	ProductVariantID pgtype.UUID        `json:"product_variant_id"`
+	ImageUrl         string             `json:"image_url"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
 type ProductVariant struct {
-	ID          pgtype.UUID
-	ProductID   pgtype.UUID
-	Sku         string
-	Size        pgtype.Text
-	Color       pgtype.Text
-	PriceInKobo int32
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	ID          pgtype.UUID        `json:"id"`
+	ProductID   pgtype.UUID        `json:"product_id"`
+	Sku         string             `json:"sku"`
+	Size        pgtype.Text        `json:"size"`
+	Color       pgtype.Text        `json:"color"`
+	PriceInKobo int32              `json:"price_in_kobo"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type RefreshToken struct {
-	ID        pgtype.UUID
-	TokenHash string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-	RevokedAt pgtype.Timestamptz
-	ExpiresAt pgtype.Timestamptz
-	UserID    pgtype.UUID
+	ID        pgtype.UUID        `json:"id"`
+	TokenHash string             `json:"token_hash"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UserID    pgtype.UUID        `json:"user_id"`
 }
 
 type Store struct {
-	ID          pgtype.UUID
-	Name        string
-	OwnerID     pgtype.UUID
-	Description pgtype.Text
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	ID          pgtype.UUID        `json:"id"`
+	Name        string             `json:"name"`
+	OwnerID     pgtype.UUID        `json:"owner_id"`
+	Description pgtype.Text        `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {
-	ID              pgtype.UUID
-	Name            string
-	Email           string
-	EmailVerifiedAt pgtype.Timestamptz
-	PasswordHash    string
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	Email           string             `json:"email"`
+	EmailVerifiedAt pgtype.Timestamptz `json:"email_verified_at"`
+	PasswordHash    string             `json:"password_hash"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
