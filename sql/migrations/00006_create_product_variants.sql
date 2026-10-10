@@ -1,6 +1,6 @@
 -- +goose Up
 create table if not exists product_variants(
-    id uuid primary key gen_random_uuid(),
+    id uuid primary key default gen_random_uuid(),
     product_id uuid not null references products(id),
     sku text not null,
     size varchar(5),

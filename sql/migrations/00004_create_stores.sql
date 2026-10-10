@@ -1,6 +1,6 @@
 -- +goose Up
 create table if not exists stores(
-    id uuid primary key gen_random_uuid(),
+    id uuid primary key default gen_random_uuid(),
     name varchar(100) not null unique,
     owner_id uuid not null references users(id),
     description text,

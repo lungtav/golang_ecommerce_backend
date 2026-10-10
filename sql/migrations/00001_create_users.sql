@@ -1,6 +1,6 @@
 -- +goose Up
 create table if not exists users(
-    id uuid primary key gen_random_uuid(),
+    id uuid primary key default gen_random_uuid(),
     name varchar(100) not null,
     email varchar(255) unique not null,
     email_verified_at timestamptz,

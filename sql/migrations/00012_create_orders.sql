@@ -1,7 +1,7 @@
 -- +goose Up
 create table if not exists orders(
     id uuid primary key default gen_random_uuid(),
-    user_id uuid not null references user(id),
+    user_id uuid not null references users(id),
     status varchar(10) not null default 'pending'
         check (status in ('successful', 'pending', 'failed')),
     amount integer not null,

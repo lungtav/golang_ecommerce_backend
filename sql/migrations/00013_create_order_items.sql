@@ -1,8 +1,8 @@
 -- +goose Up
 create table if not exists order_items(
-    product_id uuid not null reference products(id),
-    product_variant_id uuid not null reference products_variant(id),
-    order_id uuid not null reference orders(id),
+    product_id uuid not null references products(id),
+    product_variant_id uuid not null references products_variant(id),
+    order_id uuid not null references orders(id),
     quantity integer not null default '1'
         check (quantity >= 1),
     created_at timestamptz not null default now()
