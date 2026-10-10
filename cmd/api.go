@@ -9,16 +9,16 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type application struct{
+type application struct {
 	config config
 }
 
-func (app *application) mount() http.Handler{
-	r:= chi.NewRouter()
+func (app *application) mount() http.Handler {
+	r := chi.NewRouter()
 
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request){
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("root."))
 	})
 
@@ -26,12 +26,12 @@ func (app *application) mount() http.Handler{
 }
 
 func (app *application) run(r http.Handler) error {
-	srv:= http.Server{
-		Addr: ":8080",
-		Handler: r,
-		ReadTimeout: time.Second * 30,
+	srv := http.Server{
+		Addr:         ":8080",
+		Handler:      r,
+		ReadTimeout:  time.Second * 30,
 		WriteTimeout: time.Second * 10,
-		IdleTimeout: time.Minute,
+		IdleTimeout:  time.Minute,
 	}
 
 	slog.Info("server is starting....")
@@ -39,11 +39,11 @@ func (app *application) run(r http.Handler) error {
 	return srv.ListenAndServe()
 }
 
-type config struct{
+type config struct {
 	addr string
-	db dbConfig
+	db   dbConfig
 }
 
-type dbConfig struct{
+type dbConfig struct {
 	dsn string
 }
