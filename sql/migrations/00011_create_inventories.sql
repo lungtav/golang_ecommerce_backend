@@ -11,4 +11,4 @@ create table if not exists inventories(
 create index if not exists product_variant_store_idx on inventories(product_variant_id, store_id);
 
 -- +goose Down
-drop table if exists inventory;
+drop table if exists inventories;

@@ -10,7 +10,7 @@ create table if not exists product_variants(
     updated_at timestamptz not null default now()
 );
 
-create index if not exists products_id_variants_idx on product_variant(product_id);
+create index if not exists products_id_variants_idx on product_variants(product_id);
 
 -- +goose Down
 drop table if exists product_variants;

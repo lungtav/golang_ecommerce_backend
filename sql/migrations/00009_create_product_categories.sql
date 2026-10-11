@@ -5,7 +5,7 @@ create table if not exists product_categories(
     created_at timestamptz not null default now()
 );
 
-create index if not exists product_categories_idx on producr_categories(product_id, category_id);
+create index if not exists product_categories_idx on product_categories(product_id, category_id);
 
 -- +goose Down
 drop table if exists product_categories;

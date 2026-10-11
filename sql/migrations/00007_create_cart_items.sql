@@ -1,7 +1,7 @@
 -- +goose Up
 create table if not exists cart_items(
     product_id uuid not null references products(id),
-    product_variant_id uuid not null references products_variants(id),
+    product_variant_id uuid not null references product_variants(id),
     cart_id uuid not null references carts(id),
     quantity integer not null default 1
         check (quantity >= 1),

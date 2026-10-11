@@ -9,7 +9,7 @@ create table if not exists payments(
     amount integer not null,
     status varchar(10) not null default 'pending'
         check (status in ('succeeded', 'underpaid', 'failed')),
-    payment_method varcher(20) not null,
+    payment_method varchar(20) not null,
     paid_at timestamptz not null default now(),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
