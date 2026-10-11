@@ -3,13 +3,15 @@ package main
 import (
 	"log/slog"
 	"os"
+
+	"github.com/lungtav/golang_ecommerce_backend/internals/platform/env"
 )
 
 func main() {
 	cfg := config{
 		addr: ":8080",
 		db: dbConfig{
-			dsn: "",
+			dsn: env.Get("GOOSE_DBSTRING", ""),
 		},
 	}
 
