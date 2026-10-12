@@ -7,21 +7,21 @@ import (
 
 func JSON(w http.ResponseWriter, status int, data any) {
 
-	b, err:=json.Marshal(data)
+	b, err := json.Marshal(data)
 
-	if err!=nil{
+	if err != nil {
 		http.Error(w, "internal server error", 500)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(b)	
+	w.Write(b)
 }
 
-func Error(w http.ResponseWriter, status int, message string){
+func Error(w http.ResponseWriter, status int, message string) {
 
-	errResponse:=make(map[string]string)
+	errResponse := make(map[string]string)
 	errResponse["error"] = message
 
 	JSON(w, status, errResponse)

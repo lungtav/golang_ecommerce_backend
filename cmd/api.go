@@ -25,7 +25,7 @@ func (app *application) mount() http.Handler {
 
 	pool, err := pgxpool.New(context.Background(), app.config.db.dsn)
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("db connection failed", "error", err)
 		os.Exit(1)
 	}
@@ -36,13 +36,12 @@ func (app *application) mount() http.Handler {
 		w.Write([]byte("root."))
 	})
 
-	queries:=db.New(pool)
+	queries := db.New(pool)
 
-	productService:= auth.NewService(queries)
-	productHandler:= auth.NewHandler(productService)
+	productService := auth.NewService(queries)
+	productHandler := auth.NewHandler(productService)
 
-	
-	r.Route("/auth", func(r chi.Router){
+	r.Route("/auth", func(r chi.Router) {
 		r.Post("/sign-up", productHandler.SignUp)
 	})
 
@@ -51,14 +50,14 @@ func (app *application) mount() http.Handler {
 
 func (app *application) run(r http.Handler) error {
 	srv := http.Server{
-		Addr:        app.config.addr,
+		Addr:         app.config.addr,
 		Handler:      r,
 		ReadTimeout:  time.Second * 30,
 		WriteTimeout: time.Second * 10,
 		IdleTimeout:  time.Minute,
 	}
 
-	fmt.Println("server is runnin on port", app.config.addr )
+	fmt.Println("server is runnin on port", app.config.addr)
 
 	return srv.ListenAndServe()
 }

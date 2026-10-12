@@ -19,39 +19,38 @@ type svc struct {
 	queries *db.Queries
 }
 
-func NewService (queries *db.Queries) Service{
+func NewService(queries *db.Queries) Service {
 	return &svc{queries: queries}
 }
 
-var ErrEmailTaken= errors.New("email is existing")
+var ErrEmailTaken = errors.New("email is existing")
 var ErrServerError = errors.New("internal server error")
 
-func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error)  {
+func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 
-	email:= strings.ToLower(strings.TrimSpace(req.Email))
-	_, err:= s.queries.GetUserByEmail(ctx, email)
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	_, err := s.queries.GetUserByEmail(ctx, email)
 
-
-	if err==nil{
+	if err == nil {
 		return db.User{}, ErrEmailTaken
 	}
 
-	if !errors.Is(err, pgx.ErrNoRows){
+	if !errors.Is(err, pgx.ErrNoRows) {
 		return db.User{}, ErrServerError
 	}
 
 	//hash password
-	hashedPassword, err:= password.Hash(req.Password)
+	hashedPassword, err := password.Hash(req.Password)
 
-	if err!=nil{
-		slog.Error("hash password failed","error", err)
+	if err != nil {
+		slog.Error("hash password failed", "error", err)
 		return db.User{}, ErrServerError
 	}
 
 	//create user
-	user, err:= s.queries.CreateUser(ctx, db.CreateUserParams{Email: email, PasswordHash: hashedPassword, Name: req.Name})
+	user, err := s.queries.CreateUser(ctx, db.CreateUserParams{Email: email, PasswordHash: hashedPassword, Name: req.Name})
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("create user failed", "error", err)
 		return db.User{}, ErrServerError
 	}

@@ -10,12 +10,11 @@ import (
 
 func main() {
 
-	err:= godotenv.Load()
+	err := godotenv.Load()
 
-	if err != nil{
+	if err != nil {
 		slog.Error("unable to load env", "error", err)
 	}
-
 
 	cfg := config{
 		addr: ":8080",
