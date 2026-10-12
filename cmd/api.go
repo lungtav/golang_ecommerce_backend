@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 	"github.com/lungtav/golang_ecommerce_backend/internals/auth"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 )
@@ -21,11 +20,6 @@ type application struct {
 }
 
 func (app *application) mount() http.Handler {
-	err:= godotenv.Load()
-
-	if err != nil{
-		slog.Error("unable to load env", "error", err)
-	}
 
 	r := chi.NewRouter()
 

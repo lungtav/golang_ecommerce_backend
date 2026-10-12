@@ -65,7 +65,7 @@ type Payment struct {
 	Currency          string             `json:"currency"`
 	Amount            int32              `json:"amount"`
 	Status            string             `json:"status"`
-	PaymentMethod     interface{}        `json:"payment_method"`
+	PaymentMethod     string             `json:"payment_method"`
 	PaidAt            pgtype.Timestamptz `json:"paid_at"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
