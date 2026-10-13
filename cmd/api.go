@@ -42,7 +42,7 @@ func (app *application) run(r http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
-	slog.Info("server is runnin on port", app.config.addr)
+	slog.Info("server is running on port", "addr", app.config.addr)
 
 	return srv.ListenAndServe()
 }
