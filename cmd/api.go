@@ -1,48 +1,33 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lungtav/golang_ecommerce_backend/internals/auth"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 )
-
-type application struct {
-	config config
-}
 
 func (app *application) mount() http.Handler {
 
 	r := chi.NewRouter()
 
-	pool, err := pgxpool.New(context.Background(), app.config.db.dsn)
-
-	if err != nil {
-		slog.Error("db connection failed", "error", err)
-		os.Exit(1)
-	}
-
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("root."))
+		w.Write([]byte("ok"))
 	})
 
-	queries := db.New(pool)
+	queries := db.New(app.db)
 
-	productService := auth.NewService(queries)
-	productHandler := auth.NewHandler(productService)
+	authService := auth.NewService(queries)
+	authHandler := auth.NewHandler(authService)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/sign-up", productHandler.SignUp)
+		r.Post("/sign-up", authHandler.SignUp)
 	})
 
 	return r
@@ -52,21 +37,12 @@ func (app *application) run(r http.Handler) error {
 	srv := http.Server{
 		Addr:         app.config.addr,
 		Handler:      r,
-		ReadTimeout:  time.Second * 30,
-		WriteTimeout: time.Second * 10,
+		ReadTimeout:  time.Second * 10,
+		WriteTimeout: time.Second * 30,
 		IdleTimeout:  time.Minute,
 	}
 
-	fmt.Println("server is runnin on port", app.config.addr)
+	slog.Info("server is runnin on port", app.config.addr)
 
 	return srv.ListenAndServe()
-}
-
-type config struct {
-	addr string
-	db   dbConfig
-}
-
-type dbConfig struct {
-	dsn string
 }
