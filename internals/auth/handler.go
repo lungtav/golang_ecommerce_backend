@@ -26,7 +26,6 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	//decode
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		slog.Error("an error occured while decoding the request", "error", err)
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
@@ -45,12 +44,13 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 			response.Error(w, http.StatusConflict, "internal server error")
 
 		default:
+			slog.Error("sign up failed", "error", err)
 			response.Error(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
 
-	response.JSON(w, 201, UserResponse{
+	response.JSON(w, http.StatusCreated, UserResponse{
 		Name:              user.Name,
 		Email:             user.Email,
 		Email_verified_at: user.EmailVerifiedAt,
