@@ -19,6 +19,8 @@ func NewHandler(service Service) *handler {
 	return &handler{service: service}
 }
 
+var validate = validator.New()
+
 func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req SignUpRequest
 
@@ -30,7 +32,6 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//validate
-	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid input")
 		return
@@ -55,5 +56,4 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		Email_verified_at: user.EmailVerifiedAt,
 	})
 }
-
 
