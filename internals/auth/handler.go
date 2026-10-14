@@ -41,7 +41,7 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrEmailTaken):
-			response.Error(w, http.StatusConflict, "internal server error")
+			response.Error(w, http.StatusConflict, "email already exists")
 
 		default:
 			slog.Error("sign up failed", "error", err)
