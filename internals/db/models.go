@@ -134,3 +134,12 @@ type User struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
+
+type VerificationToken struct {
+	ID        pgtype.UUID        `json:"id"`
+	TokenHash string             `json:"token_hash"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UserID    pgtype.UUID        `json:"user_id"`
+}
