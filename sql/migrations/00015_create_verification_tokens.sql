@@ -4,7 +4,7 @@ create table if not exists verification_tokens(
     token_hash varchar(255) not null unique,
     created_at timestamptz not null default now(),
     used_at timestamptz,
-    expires_at timestamptz not null default now() + interval '2 mins',
+    expires_at timestamptz not null default now() + interval '15 mins',
     user_id uuid not null references users(id)
 );
 
