@@ -1,2 +1,8 @@
 -- name: CreateVerficationToken :exec
 insert into verification_tokens (token_hash, user_id) values($1, $2);
+
+-- name: GetVerificationToken :one
+select token_hash, used_at, created_at, expires_at from verification_tokens where user_id = $1;
+
+-- name: DeleteVerificationToken :exec
+delete from verification_tokens where token_hash = $1;
