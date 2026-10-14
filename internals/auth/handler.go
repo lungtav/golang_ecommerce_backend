@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/response"
 )
 
@@ -42,23 +41,19 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrEmailTaken):
-			response.Error(w, http.StatusConflict, err.Error())
+			response.Error(w, http.StatusConflict, "internal server error")
 
 		default:
-			response.Error(w, http.StatusInternalServerError, err.Error())
+			response.Error(w, http.StatusInternalServerError, "internal server error")
 		}
 		return
 	}
 
-	formattedUserResponse := struct {
-		Name              string             `json:"name"`
-		Email             string             `json:"email"`
-		Email_verified_at pgtype.Timestamptz `json:"email_verified_at"`
-	}{
+	response.JSON(w, 201, UserResponse{
 		Name:              user.Name,
 		Email:             user.Email,
 		Email_verified_at: user.EmailVerifiedAt,
-	}
-
-	response.JSON(w, 201, formattedUserResponse)
+	})
 }
+
+
