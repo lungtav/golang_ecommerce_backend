@@ -1,6 +1,9 @@
 package auth
 
-import "github.com/jackc/pgx/v5/pgtype"
+import (
+	"time"
+
+)
 
 type SignUpRequest struct {
 	Email           string `json:"email" validate:"required,email"`
@@ -12,9 +15,9 @@ type SignUpRequest struct {
 type UserResponse struct {
 	Name              string             `json:"name"`
 	Email             string             `json:"email"`
-	Email_verified_at pgtype.Timestamptz `json:"email_verified_at"`
+	Email_verified_at *time.Time `json:"email_verified_at"`
 }
 
 type ResendVerificationRequest struct {
-	Email string `json:"email" validate:"required,email"`
+	Email string `json:"email" validate:"required,email,max=254"`
 }
