@@ -24,3 +24,35 @@ func (q *Queries) CreateVerficationToken(ctx context.Context, arg CreateVerficat
 	_, err := q.db.Exec(ctx, createVerficationToken, arg.TokenHash, arg.UserID)
 	return err
 }
+
+const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
+delete from verification_tokens where token_hash = $1
+`
+
+func (q *Queries) DeleteVerificationToken(ctx context.Context, tokenHash string) error {
+	_, err := q.db.Exec(ctx, deleteVerificationToken, tokenHash)
+	return err
+}
+
+const getVerificationToken = `-- name: GetVerificationToken :one
+select token_hash, used_at, created_at, expires_at from verification_tokens where user_id = $1
+`
+
+type GetVerificationTokenRow struct {
+	TokenHash string             `json:"token_hash"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) GetVerificationToken(ctx context.Context, userID pgtype.UUID) (GetVerificationTokenRow, error) {
+	row := q.db.QueryRow(ctx, getVerificationToken, userID)
+	var i GetVerificationTokenRow
+	err := row.Scan(
+		&i.TokenHash,
+		&i.UsedAt,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
