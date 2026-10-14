@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lungtav/golang_ecommerce_backend/internals/auth"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
+	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
 )
 
 func (app *application) mount() http.Handler {
@@ -23,7 +24,9 @@ func (app *application) mount() http.Handler {
 
 	queries := db.New(app.db)
 
-	authService := auth.NewService(queries)
+	mailer := mailer.New(app.config.resendApiKey)
+
+	authService := auth.NewService(queries, mailer)
 	authHandler := auth.NewHandler(authService)
 
 	r.Route("/auth", func(r chi.Router) {

@@ -26,6 +26,7 @@ func main() {
 		db: dbConfig{
 			dsn: env.Get("GOOSE_DBSTRING", ""),
 		},
+		resendApiKey: env.Get("RESEND_API_KEY", ""),
 	}
 
 	pool, err := pgxpool.New(context.Background(), cfg.db.dsn)

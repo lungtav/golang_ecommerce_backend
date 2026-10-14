@@ -1,6 +1,8 @@
 package main
 
-import "github.com/jackc/pgx/v5/pgxpool"
+import (
+	"github.com/jackc/pgx/v5/pgxpool"
+)
 
 type application struct {
 	config config
@@ -8,8 +10,9 @@ type application struct {
 }
 
 type config struct {
-	addr string
-	db   dbConfig
+	addr         string
+	db           dbConfig
+	resendApiKey string
 }
 
 type dbConfig struct {
