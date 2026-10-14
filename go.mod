@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/joho/godotenv v1.5.1
+	github.com/resend/resend-go/v4 v4.8.2
 	golang.org/x/crypto v0.58.0
 )
 
