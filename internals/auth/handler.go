@@ -23,9 +23,19 @@ var validate = validator.New()
 
 func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req SignUpRequest
+	var maxErr *http.MaxBytesError
+
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<10)
 
 	//decode
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&req)
+
+	if errors.As(err, &maxErr){
+		response.Error(w, http.StatusRequestEntityTooLarge, "request body too large")
+		return
+	}
+
+	if err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}

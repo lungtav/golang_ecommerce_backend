@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -70,8 +69,6 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 	s.queries.CreateVerficationToken(ctx, db.CreateVerficationTokenParams{TokenHash: hashedToken, UserID: user.ID})
 
 	url := env.Get("FRONTEND_URL", "") + `/verify-email?token=` + rawToken
-
-	fmt.Print(url)
 
 	//send email
 	s.mailer.SendEmailVerification(req.Name, email, url)
