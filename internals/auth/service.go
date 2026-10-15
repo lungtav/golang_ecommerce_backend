@@ -17,7 +17,8 @@ import (
 
 type Service interface {
 	SignUp(ctx context.Context, req SignUpRequest) (db.User, error)
-	ResendVerification (ctx context.Context, req ResendVerificationRequest)(error)
+	ResendVerification(ctx context.Context, req ResendVerificationRequest) error
+	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 }
 
 type svc struct {
@@ -34,6 +35,7 @@ func NewService(queries *db.Queries, mailer *mailer.Mailer) Service {
 
 var ErrEmailTaken = errors.New("email is existing")
 var ErrServerError = errors.New("internal server error")
+var ErrConflictError = errors.New("email already verified")
 var ErrNoUser = errors.New("no user associated with this email")
 var ErrTooSoon = errors.New("a full minute before another token can be assigned")
 var ErrInvalidToken = errors.New("token is invalid")
@@ -87,61 +89,97 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 	return user, nil
 }
 
-func (s *svc) ResendVerification (ctx context.Context, req ResendVerificationRequest)(error) {
-	email:= normalize.Email(req.Email)
+func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequest) error {
+	email := normalize.Email(req.Email)
 
-	user, err:=s.queries.GetUserByEmail(ctx, email)
+	user, err := s.queries.GetUserByEmail(ctx, email)
 
 	var verifiedAt *time.Time
 
-	if user.EmailVerifiedAt.Valid{
+	if user.EmailVerifiedAt.Valid {
 		verifiedAt = &user.EmailVerifiedAt.Time
+		return  ErrConflictError
 	}
 
-	if errors.Is(err, pgx.ErrNoRows){
+	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNoUser
 	}
 
-	if err!=nil{
+	if err != nil {
 		return ErrServerError
 	}
 
-	if verifiedAt != nil  {
+	if verifiedAt != nil {
 		return ErrUserVerified
 	}
 
+	token, err := s.queries.GetVerificationToken(ctx, user.ID)
 
-	token,err:=s.queries.GetVerificationToken(ctx, user.ID)
-
-	if err != nil{
+	if err != nil {
 		return ErrServerError
 	}
 
 	//check cooldown
 
 	if time.Since(token.CreatedAt.Time) < VerificationCooldown {
-	return ErrTooSoon
+		return ErrTooSoon
 	}
 
 	//delete the old token
-	if err:= s.queries.DeleteVerificationToken(ctx, token.TokenHash); err !=nil{
-		return  ErrServerError
+	if err := s.queries.DeleteVerificationToken(ctx, token.TokenHash); err != nil {
+		return ErrServerError
 	}
 
 	//create new token
-	raw, hash, err:= tokens.GenerateVerificationToken()
+	raw, hash, err := tokens.GenerateVerificationToken()
 
 	url := env.Get("FRONTEND_URL", "") + `/verify-email?token=` + raw
-	
-	if err:= s.queries.CreateVerficationToken(ctx, db.CreateVerficationTokenParams{
+
+	if err := s.queries.CreateVerficationToken(ctx, db.CreateVerficationTokenParams{
 		TokenHash: hash,
-		UserID: user.ID,
-	}); err!=nil{
+		UserID:    user.ID,
+	}); err != nil {
 		return ErrServerError
 	}
 
 	//send to the user
 	s.mailer.SendEmailVerification(user.Name, email, url)
+
+	return nil
+}
+
+func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
+	hashedToken := tokens.HashToken(req.Token)
+
+	storedToken, err := s.queries.GetVerificationTokenByHash(ctx, hashedToken)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrInvalidToken
+	}
+
+	if err != nil {
+		return ErrServerError
+	}
+
+	//if expired return
+	if time.Now().After(storedToken.ExpiresAt.Time) {
+		return ErrInvalidToken
+	}
+
+	//if used, return
+	if storedToken.UsedAt.Valid {
+		return ErrInvalidToken
+	}
+
+	//mark the token as used
+	if err=s.queries.UpdateVerificationTokensById(ctx, storedToken.ID); err!=nil{
+		return ErrServerError
+	}
+
+	//verify email
+	if err := s.queries.UpdateUserById(ctx, storedToken.UserID); err != nil {
+		return ErrServerError
+	}
 
 	return nil
 }
