@@ -25,14 +25,13 @@ var maxErr *http.MaxBytesError
 
 func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req SignUpRequest
-	
 
 	r.Body = http.MaxBytesReader(w, r.Body, 5<<10)
 
 	//decode
 	err := json.NewDecoder(r.Body).Decode(&req)
 
-	if errors.As(err, &maxErr){
+	if errors.As(err, &maxErr) {
 		response.Error(w, http.StatusRequestEntityTooLarge, "request body too large")
 		return
 	}
@@ -64,7 +63,7 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	var verifiedAt *time.Time
 	if user.EmailVerifiedAt.Valid {
-	verifiedAt = &user.EmailVerifiedAt.Time
+		verifiedAt = &user.EmailVerifiedAt.Time
 	}
 
 	response.JSON(w, http.StatusCreated, UserResponse{
@@ -74,30 +73,30 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *handler) ResendVerification (w http.ResponseWriter, r *http.Request) {
+func (h *handler) ResendVerification(w http.ResponseWriter, r *http.Request) {
 	var req ResendVerificationRequest
 
 	//decode
 	r.Body = http.MaxBytesReader(w, r.Body, 254)
-	err:=json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 
-	if errors.As(err, &maxErr ){
+	if errors.As(err, &maxErr) {
 		response.Error(w, http.StatusRequestEntityTooLarge, "request body too large")
-		return 
+		return
 	}
 
-	if err!= nil{
+	if err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	//validate
-	if err:=validate.Struct(req); err!=nil{
+	if err := validate.Struct(req); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid input")
 		return
 	}
 
-	if err:=h.service.ResendVerification(r.Context(), req); err!= nil{
+	if err := h.service.ResendVerification(r.Context(), req); err != nil {
 		switch {
 		case errors.Is(err, ErrNoUser):
 			response.Error(w, http.StatusForbidden, "only a signed up user can request another verification email")
@@ -106,11 +105,40 @@ func (h *handler) ResendVerification (w http.ResponseWriter, r *http.Request) {
 			response.Error(w, http.StatusTooEarly, "wait a full minute before requesting another token")
 			return
 		
+		case errors.Is(err, ErrConflictError):
+			response.Error(w, http.StatusConflict, "user is already verified")
+			return
+
 		default:
 			response.Error(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 	}
 
-	response.JSON(w, http.StatusOK, map[string]string{"error":"another verification has been sent"})
+	response.JSON(w, http.StatusOK, map[string]string{"message": "another verification has been sent"})
+}
+
+func (h *handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+
+	var req VerifyEmailRequest
+
+	req.Token = r.URL.Query().Get("token")
+
+	//validate
+	if err := validate.Struct(req); err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid input")
+		return
+	}
+
+	if err := h.service.VerifyEmail(r.Context(), req); err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			response.Error(w, http.StatusBadRequest, "invalid or expired token")
+			return
+		default:
+			response.Error(w, http.StatusInternalServerError, "internal server error")
+		}
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{"message": "email verification successful"})
 }
