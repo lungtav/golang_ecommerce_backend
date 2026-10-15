@@ -32,6 +32,7 @@ func (app *application) mount() http.Handler {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/sign-up", authHandler.SignUp)
 		r.Post("/resend-verification", authHandler.ResendVerification)
+		r.Post("/verify-email", authHandler.VerifyEmail)
 	})
 
 	return r
