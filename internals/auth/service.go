@@ -35,7 +35,6 @@ func NewService(queries *db.Queries, mailer *mailer.Mailer) Service {
 
 var ErrEmailTaken = errors.New("email is existing")
 var ErrServerError = errors.New("internal server error")
-var ErrConflictError = errors.New("email already verified")
 var ErrNoUser = errors.New("no user associated with this email")
 var ErrTooSoon = errors.New("a full minute before another token can be assigned")
 var ErrInvalidToken = errors.New("token is invalid")
@@ -94,11 +93,8 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 
 	user, err := s.queries.GetUserByEmail(ctx, email)
 
-	var verifiedAt *time.Time
-
 	if user.EmailVerifiedAt.Valid {
-		verifiedAt = &user.EmailVerifiedAt.Time
-		return  ErrConflictError
+		return  ErrUserVerified
 	}
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -107,10 +103,6 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 
 	if err != nil {
 		return ErrServerError
-	}
-
-	if verifiedAt != nil {
-		return ErrUserVerified
 	}
 
 	token, err := s.queries.GetVerificationToken(ctx, user.ID)

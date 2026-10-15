@@ -105,7 +105,7 @@ func (h *handler) ResendVerification(w http.ResponseWriter, r *http.Request) {
 			response.Error(w, http.StatusTooEarly, "wait a full minute before requesting another token")
 			return
 		
-		case errors.Is(err, ErrConflictError):
+		case errors.Is(err, ErrUserVerified):
 			response.Error(w, http.StatusConflict, "user is already verified")
 			return
 
