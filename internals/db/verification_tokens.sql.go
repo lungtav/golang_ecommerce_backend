@@ -56,3 +56,37 @@ func (q *Queries) GetVerificationToken(ctx context.Context, userID pgtype.UUID) 
 	)
 	return i, err
 }
+
+const getVerificationTokenByHash = `-- name: GetVerificationTokenByHash :one
+select id, user_id, used_at, expires_at, created_at from verification_tokens where token_hash = $1
+`
+
+type GetVerificationTokenByHashRow struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) GetVerificationTokenByHash(ctx context.Context, tokenHash string) (GetVerificationTokenByHashRow, error) {
+	row := q.db.QueryRow(ctx, getVerificationTokenByHash, tokenHash)
+	var i GetVerificationTokenByHashRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UsedAt,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateVerificationTokensById = `-- name: UpdateVerificationTokensById :exec
+update verification_tokens set used_at = now() where id =$1
+`
+
+func (q *Queries) UpdateVerificationTokensById(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, updateVerificationTokensById, id)
+	return err
+}
