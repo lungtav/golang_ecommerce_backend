@@ -2,7 +2,6 @@ package auth
 
 import (
 	"time"
-
 )
 
 type SignUpRequest struct {
@@ -13,11 +12,15 @@ type SignUpRequest struct {
 }
 
 type UserResponse struct {
-	Name              string             `json:"name"`
-	Email             string             `json:"email"`
+	Name              string     `json:"name"`
+	Email             string     `json:"email"`
 	Email_verified_at *time.Time `json:"email_verified_at"`
 }
 
 type ResendVerificationRequest struct {
 	Email string `json:"email" validate:"required,email,max=254"`
+}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required"`
 }
