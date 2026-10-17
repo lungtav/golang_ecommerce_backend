@@ -59,3 +59,15 @@ func (q *Queries) RevokeRefreshToken(ctx context.Context, id pgtype.UUID) (int64
 	}
 	return result.RowsAffected(), nil
 }
+
+const revokeRefreshTokenByHash = `-- name: RevokeRefreshTokenByHash :execrows
+update refresh_tokens set revoked_at = now() where token_hash = $1 and revoked_at is null
+`
+
+func (q *Queries) RevokeRefreshTokenByHash(ctx context.Context, tokenHash string) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeRefreshTokenByHash, tokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
