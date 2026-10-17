@@ -21,6 +21,7 @@ type Service interface {
 	ResendVerification(ctx context.Context, req ResendVerificationRequest) error
 	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 	SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmailRow, accesstoken, refreshToken string, err error)
+	Refresh(ctx context.Context, req RefreshRequest) (string, string, error)
 }
 
 type svc struct {
@@ -264,11 +265,8 @@ func (s *svc) SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmai
 	}
 
 	if err != nil {
+		slog.Error("get user by email failed", "error", err)
 		return db.GetUserByEmailRow{}, "", "", ErrServerError
-	}
-
-	if !user.EmailVerifiedAt.Valid {
-		return db.GetUserByEmailRow{}, "", "", ErrUserNotVerified
 	}
 
 	//compare password
@@ -276,6 +274,10 @@ func (s *svc) SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmai
 
 	if !isPasswordMatch {
 		return db.GetUserByEmailRow{}, "", "", ErrInvalidCredentials
+	}
+
+	if !user.EmailVerifiedAt.Valid {
+		return db.GetUserByEmailRow{}, "", "", ErrUserNotVerified
 	}
 
 	//create refresh and access tokens
@@ -303,4 +305,72 @@ func (s *svc) SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmai
 	}
 
 	return user, accessToken, rawRefreshToken, nil
+}
+
+func (s *svc) Refresh(ctx context.Context, req RefreshRequest) (string, string, error) {
+	hash := tokens.HashToken(req.RefreshToken)
+
+	stored, err := s.queries.GetRefreshToken(ctx, hash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", ErrInvalidToken
+	}
+	if err != nil {
+		slog.Error("get refresh token failed", "error", err)
+		return "", "", err
+	}
+
+	if stored.RevokedAt.Valid {
+		return "", "", ErrInvalidToken
+	}
+	if !stored.ExpiresAt.Valid || time.Now().After(stored.ExpiresAt.Time) {
+		return "", "", ErrInvalidToken
+	}
+
+	// new tokens are generated before the transaction, no DB involved
+	newRaw, newHash, err := tokens.GenerateToken()
+	if err != nil {
+		slog.Error("generate refresh token failed", "error", err)
+		return "", "", err
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		slog.Error("begin tx failed", "error", err)
+		return "", "", err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	// revoke the old token; n == 0 means another request already used it
+	n, err := qtx.RevokeRefreshToken(ctx, stored.ID)
+	if err != nil {
+		slog.Error("revoke refresh token failed", "error", err)
+		return "", "", err
+	}
+	if n == 0 {
+		return "", "", ErrInvalidToken
+	}
+
+	err = qtx.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+		TokenHash: newHash,
+		UserID:    stored.UserID,
+	})
+	if err != nil {
+		slog.Error("create refresh token failed", "error", err)
+		return "", "", err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		slog.Error("commit failed", "error", err)
+		return "", "", err
+	}
+
+	accessToken, err := tokens.GenerateAccessToken(stored.UserID.String(), s.jwtSecret)
+	if err != nil {
+		slog.Error("generate access token failed", "error", err)
+		return "", "", err
+	}
+
+	return accessToken, newRaw, nil
 }

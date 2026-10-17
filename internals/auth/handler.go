@@ -20,11 +20,10 @@ func NewHandler(service Service) *handler {
 	return &handler{service: service}
 }
 
-
 func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req SignUpRequest
 
-	if !request.Decode(w, r, &req, 5<<10){
+	if !request.Decode(w, r, &req, 5<<10) {
 		return
 	}
 
@@ -48,8 +47,8 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusCreated, UserResponse{
-		Name:              user.Name,
-		Email:             user.Email,
+		Name:            user.Name,
+		Email:           user.Email,
 		EmailVerifiedAt: verifiedAt,
 	})
 }
@@ -57,7 +56,7 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 func (h *handler) ResendVerification(w http.ResponseWriter, r *http.Request) {
 	var req ResendVerificationRequest
 
-	if !request.Decode(w, r, &req, 1<<10){
+	if !request.Decode(w, r, &req, 1<<10) {
 		return
 	}
 
@@ -86,7 +85,7 @@ func (h *handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	req.Token = r.URL.Query().Get("token")
 
 	//validate
-	validate:= validator.New()
+	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid input")
 		return
@@ -108,8 +107,8 @@ func (h *handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) SignIn(w http.ResponseWriter, r *http.Request) {
 	var req SignInRequest
-	
-	if !request.Decode(w,r, &req, 5<<10){
+
+	if !request.Decode(w, r, &req, 5<<10) {
 		return
 	}
 
@@ -135,7 +134,34 @@ func (h *handler) SignIn(w http.ResponseWriter, r *http.Request) {
 		User: UserResponse{
 			Name:  user.Name,
 			Email: user.Email,
+			EmailVerifiedAt: &user.EmailVerifiedAt.Time,
 		},
+		Tokens: RefreshResponse{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+	})
+}
+
+func (h *handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var req RefreshRequest
+	if !request.Decode(w, r, &req, 1<<10) {
+		return
+	}
+
+	accessToken, refreshToken, err := h.service.Refresh(r.Context(), req)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			response.Error(w, http.StatusUnauthorized, "invalid or expired refresh token")
+		default:
+			slog.Error("refresh failed", "error", err)
+			response.Error(w, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	response.JSON(w, http.StatusOK, RefreshResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
