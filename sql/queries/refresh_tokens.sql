@@ -6,3 +6,6 @@ select id, revoked_at, expires_at, user_id from refresh_tokens where token_hash 
 
 -- name: RevokeRefreshToken :execrows
 update refresh_tokens set revoked_at = now() where id = $1 and revoked_at is null;
+
+-- name: RevokeRefreshTokenByHash :execrows
+update refresh_tokens set revoked_at = now() where token_hash = $1 and revoked_at is null;
