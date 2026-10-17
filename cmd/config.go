@@ -14,6 +14,7 @@ type config struct {
 	db           dbConfig
 	resendApiKey string
 	jwtSecretKey string
+	frontendUrl  string
 }
 
 type dbConfig struct {
