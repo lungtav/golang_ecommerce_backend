@@ -11,26 +11,26 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createVerficationToken = `-- name: CreateVerficationToken :exec
+const createVerificationToken = `-- name: CreateVerificationToken :exec
 insert into verification_tokens (token_hash, user_id) values($1, $2)
 `
 
-type CreateVerficationTokenParams struct {
+type CreateVerificationTokenParams struct {
 	TokenHash string      `json:"token_hash"`
 	UserID    pgtype.UUID `json:"user_id"`
 }
 
-func (q *Queries) CreateVerficationToken(ctx context.Context, arg CreateVerficationTokenParams) error {
-	_, err := q.db.Exec(ctx, createVerficationToken, arg.TokenHash, arg.UserID)
+func (q *Queries) CreateVerificationToken(ctx context.Context, arg CreateVerificationTokenParams) error {
+	_, err := q.db.Exec(ctx, createVerificationToken, arg.TokenHash, arg.UserID)
 	return err
 }
 
 const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
-delete from verification_tokens where token_hash = $1
+delete from verification_tokens where user_id = $1
 `
 
-func (q *Queries) DeleteVerificationToken(ctx context.Context, tokenHash string) error {
-	_, err := q.db.Exec(ctx, deleteVerificationToken, tokenHash)
+func (q *Queries) DeleteVerificationToken(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteVerificationToken, userID)
 	return err
 }
 
@@ -82,11 +82,14 @@ func (q *Queries) GetVerificationTokenByHash(ctx context.Context, tokenHash stri
 	return i, err
 }
 
-const updateVerificationTokensById = `-- name: UpdateVerificationTokensById :exec
-update verification_tokens set used_at = now() where id =$1
+const updateVerificationTokensById = `-- name: UpdateVerificationTokensById :execrows
+update verification_tokens set used_at = now() where id =$1 and used_at is null
 `
 
-func (q *Queries) UpdateVerificationTokensById(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, updateVerificationTokensById, id)
-	return err
+func (q *Queries) UpdateVerificationTokensById(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, updateVerificationTokensById, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
