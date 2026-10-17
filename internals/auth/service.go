@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/env"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
@@ -26,13 +27,15 @@ type svc struct {
 	queries   *db.Queries
 	mailer    *mailer.Mailer
 	jwtSecret string
+	frontendUrl string
 }
 
-func NewService(queries *db.Queries, mailer *mailer.Mailer, jwtSecret string) Service {
+func NewService(queries *db.Queries, mailer *mailer.Mailer, jwtSecret string, frontendUrl string) Service {
 	return &svc{
 		queries:   queries,
 		mailer:    mailer,
 		jwtSecret: jwtSecret,
+		frontendUrl: frontendUrl,
 	}
 }
 
@@ -75,6 +78,11 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 	user, err := s.queries.CreateUser(ctx, db.CreateUserParams{Email: email, PasswordHash: hashedPassword, Name: req.Name})
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505"{
+			return db.User{}, ErrEmailTaken
+		}
+
 		slog.Error("create user failed", "error", err)
 		return db.User{}, ErrServerError
 	}
@@ -82,14 +90,25 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 	//create link
 	rawToken, hashedToken, err := tokens.GenerateToken()
 
-	//save hashed token to db
-	s.queries.CreateVerficationToken(ctx, db.CreateVerficationTokenParams{TokenHash: hashedToken, UserID: user.ID})
+	if err!=nil{
+		slog.Error("generate verification token failed", "error", err)
+		return db.User{}, ErrServerError
+	}
 
-	url := env.Get("FRONTEND_URL", "") + `/verify-email?token=` + rawToken
+	//save hashed token to db
+	if err:= s.queries.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{TokenHash: hashedToken, UserID: user.ID}); err!=nil{
+		return db.User{}, ErrServerError
+	}
+
+	url := s.frontendUrl + `/verify-email?token=` + rawToken
 
 	//send email
-	s.mailer.SendEmailVerification(req.Name, email, url)
-
+	go func(){
+		if _, err:=s.mailer.SendEmailVerification(req.Name, email, url); err!=nil{
+			slog.Error("send verification email failed", "error", err)
+		}
+	}()
+		
 	return user, nil
 }
 
@@ -132,7 +151,7 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 
 	url := env.Get("FRONTEND_URL", "") + `/verify-email?token=` + raw
 
-	if err := s.queries.CreateVerficationToken(ctx, db.CreateVerficationTokenParams{
+	if err := s.queries.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{
 		TokenHash: hash,
 		UserID:    user.ID,
 	}); err != nil {
