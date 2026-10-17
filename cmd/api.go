@@ -37,6 +37,7 @@ func (app *application) mount() http.Handler {
 		r.Post("/resend-verification", authHandler.ResendVerification)
 		r.Post("/verify-email", authHandler.VerifyEmail)
 		r.Post("/refresh", authHandler.Refresh)
+		r.Post("/logout", authHandler.Logout)
 	})
 
 	return r
