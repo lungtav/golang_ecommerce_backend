@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/normalize"
@@ -27,14 +28,16 @@ type svc struct {
 	mailer      *mailer.Mailer
 	jwtSecret   string
 	frontendUrl string
+	pool        *pgxpool.Pool
 }
 
-func NewService(queries *db.Queries, mailer *mailer.Mailer, jwtSecret string, frontendUrl string) Service {
+func NewService(queries *db.Queries, mailer *mailer.Mailer, jwtSecret, frontendUrl string, pool *pgxpool.Pool) Service {
 	return &svc{
 		queries:     queries,
 		mailer:      mailer,
 		jwtSecret:   jwtSecret,
 		frontendUrl: frontendUrl,
+		pool:        pool,
 	}
 }
 
@@ -133,10 +136,10 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 
 	token, err := s.queries.GetVerificationToken(ctx, user.ID)
 
-   if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-   	slog.Error("get verification token failed", "error", err)
-   	return ErrServerError
-   }
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		slog.Error("get verification token failed", "error", err)
+		return ErrServerError
+	}
 
 	//check cooldown
 	if token.CreatedAt.Valid && time.Since(token.CreatedAt.Time) < VerificationCooldown {
@@ -144,10 +147,10 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 	}
 
 	//delete the old token if one exists
-		if err := s.queries.DeleteVerificationToken(ctx, user.ID); err != nil {
-			slog.Error("delete verification tokens failed", "error", err)
-			return ErrServerError
-		}
+	if err := s.queries.DeleteVerificationToken(ctx, user.ID); err != nil {
+		slog.Error("delete verification tokens failed", "error", err)
+		return ErrServerError
+	}
 
 	//create new token
 	raw, hash, err := tokens.GenerateToken()
@@ -172,8 +175,8 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 		if _, err := s.mailer.SendEmailVerification(user.Name, email, url); err != nil {
 			slog.Error("send verification email failed", "error", err)
 		}
-   }()
-   return nil
+	}()
+	return nil
 }
 
 func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
@@ -186,6 +189,7 @@ func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
 	}
 
 	if err != nil {
+		slog.Error("get verification token by hash failed", "error", err)
 		return ErrServerError
 	}
 
@@ -195,17 +199,39 @@ func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
 	}
 
 	//if used, return
-	if storedToken.UsedAt.Valid {
+	if !storedToken.ExpiresAt.Valid || time.Now().After(storedToken.ExpiresAt.Time) {
 		return ErrInvalidToken
 	}
+	tx, err := s.pool.Begin(ctx)
 
-	//mark the token as used
-	if err = s.queries.UpdateVerificationTokensById(ctx, storedToken.ID); err != nil {
+	if err != nil {
+		slog.Error("transaction failed to start", "error", err)
 		return ErrServerError
 	}
 
+	defer tx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	//mark the token as used
+	n, err := qtx.UpdateVerificationTokensById(ctx, storedToken.ID)
+	if err != nil {
+		slog.Error("failed to mark verification token as used", "error", err)
+		return ErrServerError
+	}
+
+	if n == 0 {
+		return ErrInvalidToken
+	}
+
 	//verify email
-	if err := s.queries.UpdateUserById(ctx, storedToken.UserID); err != nil {
+	if err := qtx.MarkEmailVerified(ctx, storedToken.UserID); err != nil {
+		slog.Error("mark email as verified failed", "error", err)
+		return ErrServerError
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		slog.Error("failed to commit transaction", "error", err)
 		return ErrServerError
 	}
 
