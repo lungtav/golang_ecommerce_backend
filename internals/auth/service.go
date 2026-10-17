@@ -19,26 +19,31 @@ type Service interface {
 	SignUp(ctx context.Context, req SignUpRequest) (db.User, error)
 	ResendVerification(ctx context.Context, req ResendVerificationRequest) error
 	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
+	SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmailRow, accesstoken, refreshToken string, err error)
 }
 
 type svc struct {
-	queries *db.Queries
-	mailer  *mailer.Mailer
+	queries   *db.Queries
+	mailer    *mailer.Mailer
+	jwtSecret string
 }
 
-func NewService(queries *db.Queries, mailer *mailer.Mailer) Service {
+func NewService(queries *db.Queries, mailer *mailer.Mailer, jwtSecret string) Service {
 	return &svc{
-		queries: queries,
-		mailer:  mailer,
+		queries:   queries,
+		mailer:    mailer,
+		jwtSecret: jwtSecret,
 	}
 }
 
 var ErrEmailTaken = errors.New("email is existing")
+var ErrInvalidCredentials = errors.New("incorrect email or password")
 var ErrServerError = errors.New("internal server error")
 var ErrNoUser = errors.New("no user associated with this email")
 var ErrTooSoon = errors.New("a full minute before another token can be assigned")
 var ErrInvalidToken = errors.New("token is invalid")
 var ErrUserVerified = errors.New("this user is already verified")
+var ErrUserNotVerified = errors.New("email has to be verified before login")
 
 const (
 	VerificationTTL      = 15 * time.Minute // token lifetime
@@ -75,7 +80,7 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 	}
 
 	//create link
-	rawToken, hashedToken, err := tokens.GenerateVerificationToken()
+	rawToken, hashedToken, err := tokens.GenerateToken()
 
 	//save hashed token to db
 	s.queries.CreateVerficationToken(ctx, db.CreateVerficationTokenParams{TokenHash: hashedToken, UserID: user.ID})
@@ -94,7 +99,7 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 	user, err := s.queries.GetUserByEmail(ctx, email)
 
 	if user.EmailVerifiedAt.Valid {
-		return  ErrUserVerified
+		return ErrUserVerified
 	}
 
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -123,7 +128,7 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 	}
 
 	//create new token
-	raw, hash, err := tokens.GenerateVerificationToken()
+	raw, hash, err := tokens.GenerateToken()
 
 	url := env.Get("FRONTEND_URL", "") + `/verify-email?token=` + raw
 
@@ -164,7 +169,7 @@ func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
 	}
 
 	//mark the token as used
-	if err=s.queries.UpdateVerificationTokensById(ctx, storedToken.ID); err!=nil{
+	if err = s.queries.UpdateVerificationTokensById(ctx, storedToken.ID); err != nil {
 		return ErrServerError
 	}
 
@@ -174,4 +179,55 @@ func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
 	}
 
 	return nil
+}
+
+func (s *svc) SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmailRow, accesstoken, refreshToken string, err error) {
+
+	email := normalize.Email(req.Email)
+	user, err := s.queries.GetUserByEmail(ctx, email)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return db.GetUserByEmailRow{}, "", "", ErrNoUser
+	}
+
+	if err != nil {
+		return db.GetUserByEmailRow{}, "", "", ErrServerError
+	}
+
+	if !user.EmailVerifiedAt.Valid {
+		return db.GetUserByEmailRow{}, "", "", ErrUserNotVerified
+	}
+
+	//compare password
+	isPasswordMatch := password.Compare(req.Password, user.PasswordHash)
+
+	if !isPasswordMatch {
+		return db.GetUserByEmailRow{}, "", "", ErrInvalidCredentials
+	}
+
+	//create refresh and access tokens
+	accessToken, err := tokens.GenerateAccessToken(user.ID.String(), s.jwtSecret)
+	if err != nil {
+		slog.Error("failed to generate access token", "error", err)
+		return db.GetUserByEmailRow{}, "", "", ErrServerError
+	}
+
+	rawRefreshToken, hashRefreshToken, err := tokens.GenerateToken()
+	if err != nil {
+		slog.Error("failed to generate refresh token", "error", err)
+		return db.GetUserByEmailRow{}, "", "", ErrServerError
+	}
+
+	//insert refresh token hash to db
+	err = s.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+		TokenHash: hashRefreshToken,
+		UserID:    user.ID,
+	})
+
+	if err != nil {
+		slog.Error("failed to insert refresh token into db", "error", err)
+		return db.GetUserByEmailRow{}, "", "", ErrServerError
+	}
+
+	return user, accessToken, rawRefreshToken, nil
 }
