@@ -146,12 +146,6 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 		return ErrTooSoon
 	}
 
-	//delete the old token if one exists
-	if err := s.queries.DeleteVerificationToken(ctx, user.ID); err != nil {
-		slog.Error("delete verification tokens failed", "error", err)
-		return ErrServerError
-	}
-
 	//create new token
 	raw, hash, err := tokens.GenerateToken()
 
@@ -162,11 +156,33 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 
 	url := s.frontendUrl + `/verify-email?token=` + raw
 
-	if err := s.queries.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{
+	tx, err := s.pool.Begin(ctx)
+
+	if err != nil {
+		slog.Error("begin tx failed", "error", err)
+		return ErrServerError
+	}
+	defer tx.Rollback(ctx)
+
+	qtx:=s.queries.WithTx(tx)
+
+
+	//delete the old token if one exists
+	if err := qtx.DeleteVerificationToken(ctx, user.ID); err != nil {
+		slog.Error("delete verification tokens failed", "error", err)
+		return ErrServerError
+	}
+
+	if err := qtx.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{
 		TokenHash: hash,
 		UserID:    user.ID,
 	}); err != nil {
 		slog.Error("create verification token failed", "error", err)
+		return ErrServerError
+	}
+
+	if err := tx.Commit(ctx); err!=nil{
+		slog.Error("failed to commit transaction", "error", err)
 		return ErrServerError
 	}
 
@@ -193,19 +209,19 @@ func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
 		return ErrServerError
 	}
 
-	//if expired return
-	if time.Now().After(storedToken.ExpiresAt.Time) {
+	//if expired return	
+	if !storedToken.ExpiresAt.Valid || time.Now().After(storedToken.ExpiresAt.Time) {
 		return ErrInvalidToken
 	}
 
 	//if used, return
-	if !storedToken.ExpiresAt.Valid || time.Now().After(storedToken.ExpiresAt.Time) {
+	if storedToken.UsedAt.Valid {
 		return ErrInvalidToken
 	}
 	tx, err := s.pool.Begin(ctx)
 
 	if err != nil {
-		slog.Error("transaction failed to start", "error", err)
+		slog.Error("begin tx failed", "error", err)
 		return ErrServerError
 	}
 
