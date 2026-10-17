@@ -27,6 +27,22 @@ func main() {
 			dsn: env.Get("GOOSE_DBSTRING", ""),
 		},
 		resendApiKey: env.Get("RESEND_API_KEY", ""),
+		jwtSecretKey: env.Get("JWT_SECRET_KEY", ""),
+	}
+
+	if cfg.db.dsn == "" {
+		slog.Error("missing required env", "key", "GOOSE_DBSTRING")
+		os.Exit(1)
+	}
+
+	if cfg.resendApiKey == "" {
+		slog.Error("missing required env", "key", "RESEND_API_KEY")
+		os.Exit(1)
+	}
+
+	if cfg.jwtSecretKey == "" {
+		slog.Error("missing required env", "key", "JWT_SECRET")
+		os.Exit(1)
 	}
 
 	pool, err := pgxpool.New(context.Background(), cfg.db.dsn)
