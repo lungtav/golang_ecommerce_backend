@@ -28,10 +28,15 @@ func main() {
 		},
 		resendApiKey: env.Get("RESEND_API_KEY", ""),
 		jwtSecretKey: env.Get("JWT_SECRET_KEY", ""),
+		frontendUrl:  env.Get("FRONTEND_URL", ""),
 	}
 
 	if cfg.db.dsn == "" {
 		slog.Error("missing required env", "key", "GOOSE_DBSTRING")
+		os.Exit(1)
+	}
+	if cfg.frontendUrl == "" {
+		slog.Error("missing required env", "key", "FRONTEND_URL")
 		os.Exit(1)
 	}
 
