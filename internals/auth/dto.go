@@ -17,14 +17,13 @@ type SignInRequest struct {
 }
 
 type SignInResponse struct {
-	User         UserResponse `json:"user"`
-	AccessToken  string       `json:"access_token"`
-	RefreshToken string       `json:"refresh_token"`
+	User   UserResponse    `json:"user"`
+	Tokens RefreshResponse `json:"tokens"`
 }
 
 type UserResponse struct {
-	Name              string     `json:"name"`
-	Email             string     `json:"email"`
+	Name            string     `json:"name"`
+	Email           string     `json:"email"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at"`
 }
 
@@ -34,4 +33,13 @@ type ResendVerificationRequest struct {
 
 type VerifyEmailRequest struct {
 	Token string `json:"token" validate:"required"`
+}
+
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type RefreshResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
