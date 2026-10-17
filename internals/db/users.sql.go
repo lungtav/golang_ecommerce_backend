@@ -61,12 +61,12 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	return i, err
 }
 
-const updateUserById = `-- name: UpdateUserById :exec
+const markEmailVerified = `-- name: MarkEmailVerified :exec
 update users set email_verified_at = now() where id =$1
 `
 
-func (q *Queries) UpdateUserById(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, updateUserById, id)
+func (q *Queries) MarkEmailVerified(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, markEmailVerified, id)
 	return err
 }
 
