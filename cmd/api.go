@@ -23,14 +23,15 @@ func (app *application) mount() http.Handler {
 	})
 
 	queries := db.New(app.db)
-
 	mailer := mailer.New(app.config.resendApiKey)
+	jwtSecret := app.config.jwtSecretKey
 
-	authService := auth.NewService(queries, mailer)
+	authService := auth.NewService(queries, mailer, jwtSecret)
 	authHandler := auth.NewHandler(authService)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/sign-up", authHandler.SignUp)
+		r.Post("/sign-in", authHandler.SignIn)
 		r.Post("/resend-verification", authHandler.ResendVerification)
 		r.Post("/verify-email", authHandler.VerifyEmail)
 	})
