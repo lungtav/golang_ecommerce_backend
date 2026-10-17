@@ -22,6 +22,7 @@ type Service interface {
 	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 	SignIn(ctx context.Context, req SignInRequest) (u db.GetUserByEmailRow, accesstoken, refreshToken string, err error)
 	Refresh(ctx context.Context, req RefreshRequest) (string, string, error)
+	Logout(ctx context.Context, req LogoutRequest) error
 }
 
 type svc struct {
@@ -373,4 +374,15 @@ func (s *svc) Refresh(ctx context.Context, req RefreshRequest) (string, string, 
 	}
 
 	return accessToken, newRaw, nil
+}
+
+func (s *svc) Logout(ctx context.Context, req LogoutRequest) error {
+	hash := tokens.HashToken(req.RefreshToken)
+
+	if _, err := s.queries.RevokeRefreshTokenByHash(ctx, hash); err != nil {
+		slog.Error("revoke refresh token failed", "error", err)
+		return err
+	}
+
+	return nil
 }
