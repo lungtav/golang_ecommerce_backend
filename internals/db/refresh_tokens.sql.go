@@ -26,11 +26,11 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one
-select token_hash, revoked_at, expires_at, user_id from refresh_tokens where token_hash =$1
+select id, revoked_at, expires_at, user_id from refresh_tokens where token_hash =$1
 `
 
 type GetRefreshTokenRow struct {
-	TokenHash string             `json:"token_hash"`
+	ID        pgtype.UUID        `json:"id"`
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
 	UserID    pgtype.UUID        `json:"user_id"`
@@ -40,10 +40,22 @@ func (q *Queries) GetRefreshToken(ctx context.Context, tokenHash string) (GetRef
 	row := q.db.QueryRow(ctx, getRefreshToken, tokenHash)
 	var i GetRefreshTokenRow
 	err := row.Scan(
-		&i.TokenHash,
+		&i.ID,
 		&i.RevokedAt,
 		&i.ExpiresAt,
 		&i.UserID,
 	)
 	return i, err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :execrows
+update refresh_tokens set revoked_at = now() where id = $1 and revoked_at is null
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeRefreshToken, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
