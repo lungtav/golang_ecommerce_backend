@@ -166,3 +166,18 @@ func (h *handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	})
 }
+
+func (h *handler) Logout(w http.ResponseWriter, r *http.Request) {
+	var req LogoutRequest
+	if !request.Decode(w, r, &req, 1<<10) {
+		return
+	}
+
+	if err := h.service.Logout(r.Context(), req); err != nil {
+		slog.Error("logout failed", "error", err)
+		response.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{"message": "logged out"})
+}
