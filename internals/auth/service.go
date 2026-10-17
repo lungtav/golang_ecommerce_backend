@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
-	"github.com/lungtav/golang_ecommerce_backend/internals/platform/env"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/normalize"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/password"
@@ -24,33 +23,35 @@ type Service interface {
 }
 
 type svc struct {
-	queries   *db.Queries
-	mailer    *mailer.Mailer
-	jwtSecret string
+	queries     *db.Queries
+	mailer      *mailer.Mailer
+	jwtSecret   string
 	frontendUrl string
 }
 
 func NewService(queries *db.Queries, mailer *mailer.Mailer, jwtSecret string, frontendUrl string) Service {
 	return &svc{
-		queries:   queries,
-		mailer:    mailer,
-		jwtSecret: jwtSecret,
+		queries:     queries,
+		mailer:      mailer,
+		jwtSecret:   jwtSecret,
 		frontendUrl: frontendUrl,
 	}
 }
 
-var ErrEmailTaken = errors.New("email is existing")
-var ErrInvalidCredentials = errors.New("incorrect email or password")
-var ErrServerError = errors.New("internal server error")
-var ErrNoUser = errors.New("no user associated with this email")
-var ErrTooSoon = errors.New("a full minute before another token can be assigned")
-var ErrInvalidToken = errors.New("token is invalid")
-var ErrUserVerified = errors.New("this user is already verified")
-var ErrUserNotVerified = errors.New("email has to be verified before login")
+var (
+	ErrEmailTaken         = errors.New("email is existing")
+	ErrInvalidCredentials = errors.New("incorrect email or password")
+	ErrServerError        = errors.New("internal server error")
+	ErrNoUser             = errors.New("no user associated with this email")
+	ErrTooSoon            = errors.New("a full minute before another token can be assigned")
+	ErrInvalidToken       = errors.New("token is invalid")
+	ErrUserVerified       = errors.New("this user is already verified")
+	ErrUserNotVerified    = errors.New("email has to be verified before login")
+)
 
 const (
-	VerificationTTL      = 15 * time.Minute // token lifetime
-	VerificationCooldown = 1 * time.Minute  // min gap between resends
+	VerificationTTL      = 15 * time.Minute
+	VerificationCooldown = 1 * time.Minute
 )
 
 func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
@@ -79,7 +80,7 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505"{
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return db.User{}, ErrEmailTaken
 		}
 
@@ -90,25 +91,25 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 	//create link
 	rawToken, hashedToken, err := tokens.GenerateToken()
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("generate verification token failed", "error", err)
 		return db.User{}, ErrServerError
 	}
 
 	//save hashed token to db
-	if err:= s.queries.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{TokenHash: hashedToken, UserID: user.ID}); err!=nil{
+	if err := s.queries.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{TokenHash: hashedToken, UserID: user.ID}); err != nil {
 		return db.User{}, ErrServerError
 	}
 
 	url := s.frontendUrl + `/verify-email?token=` + rawToken
 
 	//send email
-	go func(){
-		if _, err:=s.mailer.SendEmailVerification(req.Name, email, url); err!=nil{
+	go func() {
+		if _, err := s.mailer.SendEmailVerification(req.Name, email, url); err != nil {
 			slog.Error("send verification email failed", "error", err)
 		}
 	}()
-		
+
 	return user, nil
 }
 
@@ -117,51 +118,62 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 
 	user, err := s.queries.GetUserByEmail(ctx, email)
 
-	if user.EmailVerifiedAt.Valid {
-		return ErrUserVerified
-	}
-
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNoUser
 	}
 
 	if err != nil {
+		slog.Error("get user by email failed", "error", err)
 		return ErrServerError
+	}
+
+	if user.EmailVerifiedAt.Valid {
+		return ErrUserVerified
 	}
 
 	token, err := s.queries.GetVerificationToken(ctx, user.ID)
 
-	if err != nil {
-		return ErrServerError
-	}
+   if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+   	slog.Error("get verification token failed", "error", err)
+   	return ErrServerError
+   }
 
 	//check cooldown
-
-	if time.Since(token.CreatedAt.Time) < VerificationCooldown {
+	if token.CreatedAt.Valid && time.Since(token.CreatedAt.Time) < VerificationCooldown {
 		return ErrTooSoon
 	}
 
-	//delete the old token
-	if err := s.queries.DeleteVerificationToken(ctx, token.TokenHash); err != nil {
-		return ErrServerError
-	}
+	//delete the old token if one exists
+		if err := s.queries.DeleteVerificationToken(ctx, user.ID); err != nil {
+			slog.Error("delete verification tokens failed", "error", err)
+			return ErrServerError
+		}
 
 	//create new token
 	raw, hash, err := tokens.GenerateToken()
 
-	url := env.Get("FRONTEND_URL", "") + `/verify-email?token=` + raw
+	if err != nil {
+		slog.Error("create verification token failed", "error", err)
+		return ErrServerError
+	}
+
+	url := s.frontendUrl + `/verify-email?token=` + raw
 
 	if err := s.queries.CreateVerificationToken(ctx, db.CreateVerificationTokenParams{
 		TokenHash: hash,
 		UserID:    user.ID,
 	}); err != nil {
+		slog.Error("create verification token failed", "error", err)
 		return ErrServerError
 	}
 
 	//send to the user
-	s.mailer.SendEmailVerification(user.Name, email, url)
-
-	return nil
+	go func() {
+		if _, err := s.mailer.SendEmailVerification(user.Name, email, url); err != nil {
+			slog.Error("send verification email failed", "error", err)
+		}
+   }()
+   return nil
 }
 
 func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
