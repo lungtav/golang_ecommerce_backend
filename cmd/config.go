@@ -13,6 +13,7 @@ type config struct {
 	addr         string
 	db           dbConfig
 	resendApiKey string
+	jwtSecretKey string
 }
 
 type dbConfig struct {
