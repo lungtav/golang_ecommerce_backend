@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createRefreshToken = `-- name: CreateRefreshToken :one
-insert into refresh_tokens (token_hash, user_id) values ($1, $2) returning id, token_hash, created_at, updated_at, revoked_at, expires_at, user_id
+const createRefreshToken = `-- name: CreateRefreshToken :exec
+insert into refresh_tokens (token_hash, user_id) values ($1, $2)
 `
 
 type CreateRefreshTokenParams struct {
@@ -20,19 +20,9 @@ type CreateRefreshTokenParams struct {
 	UserID    pgtype.UUID `json:"user_id"`
 }
 
-func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error) {
-	row := q.db.QueryRow(ctx, createRefreshToken, arg.TokenHash, arg.UserID)
-	var i RefreshToken
-	err := row.Scan(
-		&i.ID,
-		&i.TokenHash,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.RevokedAt,
-		&i.ExpiresAt,
-		&i.UserID,
-	)
-	return i, err
+func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) error {
+	_, err := q.db.Exec(ctx, createRefreshToken, arg.TokenHash, arg.UserID)
+	return err
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one
