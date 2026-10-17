@@ -11,10 +11,21 @@ type SignUpRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
 }
 
+type SignInRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
+}
+
+type SignInResponse struct {
+	User         UserResponse `json:"user"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
+}
+
 type UserResponse struct {
 	Name              string     `json:"name"`
 	Email             string     `json:"email"`
-	Email_verified_at *time.Time `json:"email_verified_at"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
 }
 
 type ResendVerificationRequest struct {
