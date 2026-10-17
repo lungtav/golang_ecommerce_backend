@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/lungtav/golang_ecommerce_backend/internals/platform/request"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/response"
 )
 
@@ -20,30 +20,11 @@ func NewHandler(service Service) *handler {
 	return &handler{service: service}
 }
 
-var validate = validator.New()
 
 func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var req SignUpRequest
-	var maxErr *http.MaxBytesError
 
-	r.Body = http.MaxBytesReader(w, r.Body, 5<<10)
-
-	//decode
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	if errors.As(err, &maxErr) {
-		response.Error(w, http.StatusRequestEntityTooLarge, "request body too large")
-		return
-	}
-
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	//validate
-	if err := validate.Struct(req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid input")
+	if !request.Decode(w, r, &req, 5<<10){
 		return
 	}
 
@@ -75,25 +56,8 @@ func (h *handler) SignUp(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) ResendVerification(w http.ResponseWriter, r *http.Request) {
 	var req ResendVerificationRequest
-	var maxErr *http.MaxBytesError
 
-	//decode
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	if errors.As(err, &maxErr) {
-		response.Error(w, http.StatusRequestEntityTooLarge, "request body too large")
-		return
-	}
-
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	//validate
-	if err := validate.Struct(req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid input")
+	if !request.Decode(w, r, &req, 1<<10){
 		return
 	}
 
@@ -122,6 +86,7 @@ func (h *handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	req.Token = r.URL.Query().Get("token")
 
 	//validate
+	validate:= validator.New()
 	if err := validate.Struct(req); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid input")
 		return
@@ -143,26 +108,8 @@ func (h *handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) SignIn(w http.ResponseWriter, r *http.Request) {
 	var req SignInRequest
-	var maxErr *http.MaxBytesError
-
-	r.Body = http.MaxBytesReader(w, r.Body, 5<<10)
-
-	//decode
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	if errors.As(err, &maxErr) {
-		response.Error(w, http.StatusRequestEntityTooLarge, "request body too large")
-		return
-	}
-
-	if err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	//validate
-	if err := validate.Struct(req); err != nil {
-		response.Error(w, http.StatusBadRequest, "invalid input")
+	
+	if !request.Decode(w,r, &req, 5<<10){
 		return
 	}
 
