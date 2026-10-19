@@ -62,7 +62,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 }
 
 const markEmailVerified = `-- name: MarkEmailVerified :exec
-update users set email_verified_at = now() where id =$1
+update users set email_verified_at = now(), updated_at =now() where id =$1
 `
 
 func (q *Queries) MarkEmailVerified(ctx context.Context, id pgtype.UUID) error {
