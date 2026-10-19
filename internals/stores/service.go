@@ -11,7 +11,8 @@ import (
 )
 
 type Service interface {
-	CreateStore(ctx context.Context, req CreateStoreRequest, ownerId string) (db.CreateStoreRow, error)
+	CreateStore(ctx context.Context, req StoreRequest, ownerId string) (db.CreateStoreRow, error)
+	UpdateStore(ctx context.Context,req StoreRequest, storeId string) (error)
 }
 
 type svc struct {
@@ -26,7 +27,7 @@ var(
 	ErrConflictError= errors.New("store with this name already exists, choose another")
 )
 
-func (s *svc) CreateStore(ctx context.Context, req CreateStoreRequest, ownerId string) (db.CreateStoreRow, error){
+func (s *svc) CreateStore(ctx context.Context, req StoreRequest, ownerId string) (db.CreateStoreRow, error){
 
 	var id pgtype.UUID
 
@@ -54,4 +55,25 @@ func (s *svc) CreateStore(ctx context.Context, req CreateStoreRequest, ownerId s
 	}
 
 	return store, nil
+}
+
+func (s *svc) UpdateStore(ctx context.Context, req StoreRequest, storeId string) (error){
+	var description pgtype.Text
+
+	if err:=description.Scan(req.Description); err!=nil{
+		slog.Error("failed to parse description", "error", err)
+		return err
+	}
+	
+	_, err:= s.queries.UpdateStore(ctx, db.UpdateStoreParams{
+		Name: req.Name,
+		Description: description,
+	})
+
+	if err!=nil{
+		slog.Error("update store failed", "error", err)
+		return err
+	}
+	
+	return nil
 }
