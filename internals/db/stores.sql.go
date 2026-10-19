@@ -41,3 +41,21 @@ func (q *Queries) CreateStore(ctx context.Context, arg CreateStoreParams) (Creat
 	)
 	return i, err
 }
+
+const updateStore = `-- name: UpdateStore :execrows
+update stores set name = $1, description = $2 where id =$3
+`
+
+type UpdateStoreParams struct {
+	Name        string      `json:"name"`
+	Description pgtype.Text `json:"description"`
+	ID          pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateStore(ctx context.Context, arg UpdateStoreParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateStore, arg.Name, arg.Description, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
