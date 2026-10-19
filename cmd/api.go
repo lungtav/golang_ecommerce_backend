@@ -50,6 +50,7 @@ func (app *application) mount() http.Handler {
 	r.Route("/stores", func (r chi.Router) {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", storesHandler.CreateStore)
+		r.Put("/{storeId}", storesHandler.UpdateStore)
 	})
 
 	return r
