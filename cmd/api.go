@@ -10,6 +10,8 @@ import (
 	"github.com/lungtav/golang_ecommerce_backend/internals/auth"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
+	"github.com/lungtav/golang_ecommerce_backend/internals/stores"
+	mw "github.com/lungtav/golang_ecommerce_backend/internals/platform/middleware"
 )
 
 func (app *application) mount() http.Handler {
@@ -28,6 +30,7 @@ func (app *application) mount() http.Handler {
 	frontendUrl := app.config.frontendUrl
 	pool := app.db
 
+	//auth
 	authService := auth.NewService(queries, mailer, jwtSecret, frontendUrl, pool)
 	authHandler := auth.NewHandler(authService)
 
@@ -38,6 +41,15 @@ func (app *application) mount() http.Handler {
 		r.Post("/verify-email", authHandler.VerifyEmail)
 		r.Post("/refresh", authHandler.Refresh)
 		r.Post("/logout", authHandler.Logout)
+	})
+
+
+	//stores
+	storesService:= stores.NewService(queries)
+	storesHandler:= stores.NewHandler(storesService)
+	r.Route("/stores", func (r chi.Router) {
+		r.Use(mw.Auth(jwtSecret))
+		r.Post("/", storesHandler.CreateStore)
 	})
 
 	return r
