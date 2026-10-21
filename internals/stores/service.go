@@ -57,17 +57,23 @@ func (s *svc) CreateStore(ctx context.Context, req StoreRequest, ownerId string)
 	return store, nil
 }
 
-func (s *svc) UpdateStore(ctx context.Context, req StoreRequest, storeId string) (error){
+func (s *svc) UpdateStore(ctx context.Context, req StoreRequest, Id string) (error){
 	var description pgtype.Text
+	var storeID pgtype.UUID
 
 	if err:=description.Scan(req.Description); err!=nil{
 		slog.Error("failed to parse description", "error", err)
+		return err
+	}
+	if err:=storeID.Scan(Id); err!=nil{
+		slog.Error("failed to parse id", "error", err)
 		return err
 	}
 	
 	_, err:= s.queries.UpdateStore(ctx, db.UpdateStoreParams{
 		Name: req.Name,
 		Description: description,
+		ID: storeID,
 	})
 
 	if err!=nil{
