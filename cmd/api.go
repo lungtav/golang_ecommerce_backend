@@ -10,8 +10,9 @@ import (
 	"github.com/lungtav/golang_ecommerce_backend/internals/auth"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
-	"github.com/lungtav/golang_ecommerce_backend/internals/stores"
 	mw "github.com/lungtav/golang_ecommerce_backend/internals/platform/middleware"
+	"github.com/lungtav/golang_ecommerce_backend/internals/products"
+	"github.com/lungtav/golang_ecommerce_backend/internals/stores"
 )
 
 func (app *application) mount() http.Handler {
@@ -51,6 +52,14 @@ func (app *application) mount() http.Handler {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", storesHandler.CreateStore)
 		r.Put("/{storeId}", storesHandler.UpdateStore)
+	})
+
+	//products
+	productsService:= products.NewService(queries, pool)
+	productsHandler:= products.NewHandler(productsService)
+	r.Route("/products", func (r chi.Router) {
+		r.Use(mw.Auth(jwtSecret))
+		r.Post("/", productsHandler.CreateProduct)
 	})
 
 	return r
