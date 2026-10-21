@@ -42,6 +42,31 @@ func (q *Queries) CreateStore(ctx context.Context, arg CreateStoreParams) (Creat
 	return i, err
 }
 
+const getStoreById = `-- name: GetStoreById :one
+select id, name, owner_id, description, created_at from stores where id = $1
+`
+
+type GetStoreByIdRow struct {
+	ID          pgtype.UUID        `json:"id"`
+	Name        string             `json:"name"`
+	OwnerID     pgtype.UUID        `json:"owner_id"`
+	Description pgtype.Text        `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) GetStoreById(ctx context.Context, id pgtype.UUID) (GetStoreByIdRow, error) {
+	row := q.db.QueryRow(ctx, getStoreById, id)
+	var i GetStoreByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.OwnerID,
+		&i.Description,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateStore = `-- name: UpdateStore :execrows
 update stores set name = $1, description = $2 where id =$3
 `
