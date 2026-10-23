@@ -108,6 +108,10 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 
 	url := s.frontendUrl + `/verify-email?token=` + rawToken
 
+		if err:=s.queries.CreateCart(ctx, user.ID); err!=nil{
+			slog.Error("create cart failed for user", "id", user.ID, "error", err)
+		}
+
 	//send email
 	go func() {
 		if _, err := s.mailer.SendEmailVerification(req.Name, email, url); err != nil {
