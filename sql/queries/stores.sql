@@ -6,3 +6,6 @@ update stores set name = $1, description = $2, updated_at=now() where id =$3;
 
 -- name: GetStoreById :one
 select id, name, owner_id, description, created_at from stores where id = $1;
+
+-- name: GetProductsByStore :many
+select id, store_id, name, status, description, created_at from products where store_id = $1 order by created_at DESC;
