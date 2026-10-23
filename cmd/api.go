@@ -53,6 +53,7 @@ func (app *application) mount() http.Handler {
 		r.Post("/", storesHandler.CreateStore)
 		r.Put("/{storeId}", storesHandler.UpdateStore)
 		r.Get("/{storeId}", storesHandler.GetStore)
+		r.Get("/{storeId}/products", storesHandler.GetProductsByStore)
 	})
 
 	//products
