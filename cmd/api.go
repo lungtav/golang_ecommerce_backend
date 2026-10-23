@@ -52,6 +52,7 @@ func (app *application) mount() http.Handler {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", storesHandler.CreateStore)
 		r.Put("/{storeId}", storesHandler.UpdateStore)
+		r.Get("/{storeId}", storesHandler.GetStore)
 	})
 
 	//products
