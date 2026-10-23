@@ -15,6 +15,7 @@ type Service interface {
 	CreateStore(ctx context.Context, req StoreRequest, ownerId string) (db.CreateStoreRow, error)
 	UpdateStore(ctx context.Context,req StoreRequest, storeId string) (error)
 	GetStore( ctx context.Context, storeID string) (db.GetStoreByIdRow, error)
+	GetProductsByStore(ctx context.Context, storeID string) ([]db.GetProductsByStoreRow, error)
 }
 
 type svc struct {
@@ -28,6 +29,7 @@ func NewService(queries *db.Queries) Service{
 var(
 	ErrConflictError= errors.New("store with this name already exists, choose another")
 	ErrNoStore = errors.New("store doesn't exists")
+	ErrNoProducts = errors.New("no products in store")
 )
 
 func (s *svc) CreateStore(ctx context.Context, req StoreRequest, ownerId string) (db.CreateStoreRow, error){
@@ -113,4 +115,28 @@ func (s *svc) GetStore( ctx context.Context, Id string) (db.GetStoreByIdRow, err
 	}
 
 	return store, nil
+}
+
+func (s *svc) GetProductsByStore(ctx context.Context, storeID string) ([]db.GetProductsByStoreRow, error) {
+
+	var storeUUID pgtype.UUID
+    if err := storeUUID.Scan(storeID); err != nil {
+		slog.Error("failed to parse store id", "error", err)
+        return []db.GetProductsByStoreRow{}, err
+    }
+
+    products, err := s.queries.GetProductsByStore(ctx, storeUUID)
+    if err != nil {
+        slog.Error(
+            "failed to get products by store",
+            "error", err,
+        )
+        return []db.GetProductsByStoreRow{}, err
+    }
+
+	if len(products) ==0{
+			return []db.GetProductsByStoreRow{}, ErrNoProducts
+	}
+
+    return products, nil
 }

@@ -91,3 +91,23 @@ func (h *handler) GetStore(w http.ResponseWriter, r *http.Request) {
 
 	response.JSON(w, http.StatusFound, map[string]any{"store": store})
 }
+
+func (h *handler) GetProductsByStore(w http.ResponseWriter, r *http.Request) {
+    storeID:=chi.URLParam(r, "storeId")
+
+    products, err := h.service.GetProductsByStore(
+        r.Context(),
+        storeID,
+    )
+    if err != nil {
+       switch{
+	   case errors.Is(err, ErrNoProducts):
+		response.JSON(w, http.StatusOK, map[string]any{"message":"no products found in store"} )
+		return
+	   default:
+		response.Error(w, http.StatusInternalServerError, "internal server error")
+	}
+    }
+
+	response.JSON(w, http.StatusOK, map[string]any{"products": products})
+}
