@@ -68,7 +68,7 @@ func (q *Queries) GetStoreById(ctx context.Context, id pgtype.UUID) (GetStoreByI
 }
 
 const updateStore = `-- name: UpdateStore :execrows
-update stores set name = $1, description = $2 where id =$3
+update stores set name = $1, description = $2, updated_at=now() where id =$3
 `
 
 type UpdateStoreParams struct {
