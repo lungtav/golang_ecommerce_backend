@@ -8,4 +8,4 @@ update users set email_verified_at = now(), updated_at =now() where id =$1;
 insert into users (email, password_hash, name) values ($1, $2, $3) returning *;
 
 -- name: VerifyUser :exec
-update users set email_verified_at = $1 where email =$2;
+update users set email_verified_at = $1, updated_at=now() where email =$2;
