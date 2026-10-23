@@ -68,3 +68,26 @@ func  (h *handler) UpdateStore(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSON(w, http.StatusOK, map[string]string{"message": "store updated successfully"})
 }
+
+func (h *handler) GetStore(w http.ResponseWriter, r *http.Request) {
+	storeId:=chi.URLParam(r, "storeId")
+
+	if storeId ==""{
+		response.Error(w, http.StatusBadRequest, "store doesn't exist")
+		return
+	}
+
+	store, err := h.service.GetStore(r.Context(), storeId)
+
+	if err != nil {
+		if errors.Is(err, ErrNoStore) {
+			response.Error(w, http.StatusNotFound, "store not found")
+			return
+		}
+
+		response.Error(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	response.JSON(w, http.StatusFound, map[string]any{"store": store})
+}
