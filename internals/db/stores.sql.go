@@ -42,6 +42,46 @@ func (q *Queries) CreateStore(ctx context.Context, arg CreateStoreParams) (Creat
 	return i, err
 }
 
+const getProductsByStore = `-- name: GetProductsByStore :many
+select id, store_id, name, status, description, created_at from products where store_id = $1 order by created_at DESC
+`
+
+type GetProductsByStoreRow struct {
+	ID          pgtype.UUID        `json:"id"`
+	StoreID     pgtype.UUID        `json:"store_id"`
+	Name        string             `json:"name"`
+	Status      string             `json:"status"`
+	Description pgtype.Text        `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) GetProductsByStore(ctx context.Context, storeID pgtype.UUID) ([]GetProductsByStoreRow, error) {
+	rows, err := q.db.Query(ctx, getProductsByStore, storeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductsByStoreRow
+	for rows.Next() {
+		var i GetProductsByStoreRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.StoreID,
+			&i.Name,
+			&i.Status,
+			&i.Description,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStoreById = `-- name: GetStoreById :one
 select id, name, owner_id, description, created_at from stores where id = $1
 `

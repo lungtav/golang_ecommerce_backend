@@ -71,7 +71,7 @@ func (q *Queries) MarkEmailVerified(ctx context.Context, id pgtype.UUID) error {
 }
 
 const verifyUser = `-- name: VerifyUser :exec
-update users set email_verified_at = $1 where email =$2
+update users set email_verified_at = $1, updated_at=now() where email =$2
 `
 
 type VerifyUserParams struct {
