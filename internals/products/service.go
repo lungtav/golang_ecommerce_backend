@@ -127,6 +127,21 @@ func (s *svc) CreateProduct(ctx context.Context, req CreateProductsRequest)( db.
 		return  db.GetProductRow{}, err
 	}
 
+	//create product category
+	var categoryID pgtype.UUID
+
+	if err:=categoryID.Scan(req.CategoryId); err!= nil{
+		slog.Error("convert category id into uuid failed", "error", err)
+		return db.GetProductRow{}, err
+	}
+	if err:= qtx.CreateProductCategory(ctx, db.CreateProductCategoryParams{
+		ProductID: product.ID,
+		CategoryID:categoryID,
+	}); err!=nil{
+		slog.Error("failed to create product category")
+		return db.GetProductRow{}, err
+	}
+
 	if err=tx.Commit(ctx); err!=nil{
 		slog.Error("commit transaction failed", "error", err)
 		return db.GetProductRow{}, err

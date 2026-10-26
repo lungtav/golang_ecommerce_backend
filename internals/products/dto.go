@@ -6,6 +6,7 @@ type CreateProductsRequest struct{
 	Status 		string 				`json:"status" validate:"required,oneof=draft active archive"`
 	Description string 				`json:"description"`
 	Variants 	[]VariantRequest	`json:"variants" validate:"required,min=1,dive"`
+	CategoryId string				`json:"category_id" validate:"required"`
 }
 
 type VariantRequest struct{
