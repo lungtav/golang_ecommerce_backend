@@ -8,7 +8,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lungtav/golang_ecommerce_backend/internals/auth"
+	"github.com/lungtav/golang_ecommerce_backend/internals/carts"
+	"github.com/lungtav/golang_ecommerce_backend/internals/categories"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
+
+	// "github.com/lungtav/golang_ecommerce_backend/internals/orders"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
 	mw "github.com/lungtav/golang_ecommerce_backend/internals/platform/middleware"
 	"github.com/lungtav/golang_ecommerce_backend/internals/products"
@@ -44,11 +48,10 @@ func (app *application) mount() http.Handler {
 		r.Post("/logout", authHandler.Logout)
 	})
 
-
 	//stores
-	storesService:= stores.NewService(queries)
-	storesHandler:= stores.NewHandler(storesService)
-	r.Route("/stores", func (r chi.Router) {
+	storesService := stores.NewService(queries)
+	storesHandler := stores.NewHandler(storesService)
+	r.Route("/stores", func(r chi.Router) {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", storesHandler.CreateStore)
 		r.Put("/{storeId}", storesHandler.UpdateStore)
@@ -57,11 +60,27 @@ func (app *application) mount() http.Handler {
 	})
 
 	//products
-	productsService:= products.NewService(queries, pool)
-	productsHandler:= products.NewHandler(productsService)
-	r.Route("/products", func (r chi.Router) {
+	productsService := products.NewService(queries, pool)
+	productsHandler := products.NewHandler(productsService)
+	r.Route("/products", func(r chi.Router) {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", productsHandler.CreateProduct)
+	})
+
+	//categories
+	categoriesService := categories.NewService(queries)
+	categoriesHandler := categories.NewHandler(categoriesService)
+	r.Route("/categories", func(r chi.Router) {
+		r.Use(mw.Auth(jwtSecret))
+		r.Post("/", categoriesHandler.CreateCategory)
+	})
+
+	//carts
+	cartsService := carts.NewService(queries, pool)
+	cartsHandler := carts.NewHandler(cartsService)
+	r.Route("/carts", func(r chi.Router) {
+		r.Use(mw.Auth(jwtSecret))
+		r.Post("/", cartsHandler.AddToCart)
 	})
 
 	return r
