@@ -132,8 +132,8 @@ func (h *handler) SignIn(w http.ResponseWriter, r *http.Request) {
 	//refresh and access token sent in res body as theres no frontend
 	response.JSON(w, http.StatusOK, SignInResponse{
 		User: UserResponse{
-			Name:  user.Name,
-			Email: user.Email,
+			Name:            user.Name,
+			Email:           user.Email,
 			EmailVerifiedAt: &user.EmailVerifiedAt.Time,
 		},
 		Tokens: RefreshResponse{

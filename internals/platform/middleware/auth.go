@@ -15,30 +15,30 @@ const userIdKey ctxKey = "userId"
 
 func Auth(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request)  {
-			header:= r.Header.Get("Authorization")
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			header := r.Header.Get("Authorization")
 
-			raw, found:= strings.CutPrefix(header, "Bearer ")
+			raw, found := strings.CutPrefix(header, "Bearer ")
 
-			if !found{
+			if !found {
 				response.Error(w, http.StatusUnauthorized, "missing or invalid token")
 				return
 			}
 
-			claims, err:=tokens.ParseAccessToken(raw, secret)
+			claims, err := tokens.ParseAccessToken(raw, secret)
 
-			if err!=nil{
+			if err != nil {
 				response.Error(w, http.StatusUnauthorized, "inalid or expired token")
-				return 
+				return
 			}
 
-			ctx:= context.WithValue(r.Context(), userIdKey, claims.Subject)
+			ctx := context.WithValue(r.Context(), userIdKey, claims.Subject)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func UserId (ctx context.Context) (string, bool){
-	id, ok:= ctx.Value(userIdKey).(string)
-	return id , ok
+func UserId(ctx context.Context) (string, bool) {
+	id, ok := ctx.Value(userIdKey).(string)
+	return id, ok
 }

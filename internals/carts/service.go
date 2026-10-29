@@ -125,7 +125,7 @@ func (s *svc) AddToCart(ctx context.Context, req AddToCartRequest, userId string
 		ProductVariantID: variantID,
 	})
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("couldnt update cart item", "error", err)
 		return err
 	}

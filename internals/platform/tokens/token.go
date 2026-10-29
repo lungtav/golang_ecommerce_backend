@@ -42,7 +42,7 @@ func GenerateAccessToken(userID string, secret string) (string, error) {
 	return t.SignedString([]byte(secret))
 }
 
-func ParseAccessToken(raw, secret string) (*jwt.RegisteredClaims, error){
+func ParseAccessToken(raw, secret string) (*jwt.RegisteredClaims, error) {
 	if raw == "" || secret == "" {
 		return nil, errors.New("token and secret are required")
 	}
@@ -72,7 +72,6 @@ func ParseAccessToken(raw, secret string) (*jwt.RegisteredClaims, error){
 		return nil, errors.New("invalid access token")
 	}
 
-	
 	if claims.Subject == "" {
 		return nil, errors.New("missing token subject")
 	}

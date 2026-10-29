@@ -22,47 +22,47 @@ func NewHandler(service Service) *handler {
 
 func (h *handler) CreateStore(w http.ResponseWriter, r *http.Request) {
 	var req StoreRequest
-	if !request.Decode(w, r, &req, 1<<10){
+	if !request.Decode(w, r, &req, 1<<10) {
 		return
 	}
-	userId, ok:= mw.UserId(r.Context())
+	userId, ok := mw.UserId(r.Context())
 
-	if !ok{
+	if !ok {
 		response.Error(w, http.StatusUnauthorized, "user id not found")
 		return
 	}
 
-	store, err:=h.service.CreateStore(r.Context(), req, userId)
+	store, err := h.service.CreateStore(r.Context(), req, userId)
 
-	if err!=nil{
-		switch{
+	if err != nil {
+		switch {
 		case errors.Is(err, ErrConflictError):
-		response.Error(w, http.StatusConflict, "a store with this name exists")
-		return
-			
+			response.Error(w, http.StatusConflict, "a store with this name exists")
+			return
+
 		default:
-		response.Error(w, http.StatusInternalServerError, "internal server error")
-		return
+			response.Error(w, http.StatusInternalServerError, "internal server error")
+			return
 		}
 	}
 
 	response.JSON(w, http.StatusCreated, store)
 }
 
-func  (h *handler) UpdateStore(w http.ResponseWriter, r *http.Request) {
-	storeId:=chi.URLParam(r, "storeId")
+func (h *handler) UpdateStore(w http.ResponseWriter, r *http.Request) {
+	storeId := chi.URLParam(r, "storeId")
 
-	if storeId ==""{
+	if storeId == "" {
 		response.Error(w, http.StatusBadRequest, "store doesn't exist")
 		return
 	}
 
 	var req StoreRequest
-	if !request.Decode(w, r, &req, 1<<10 ){
+	if !request.Decode(w, r, &req, 1<<10) {
 		return
 	}
 
-	if err:=h.service.UpdateStore(r.Context(), req, storeId); err!=nil{
+	if err := h.service.UpdateStore(r.Context(), req, storeId); err != nil {
 		response.Error(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -70,9 +70,9 @@ func  (h *handler) UpdateStore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetStore(w http.ResponseWriter, r *http.Request) {
-	storeId:=chi.URLParam(r, "storeId")
+	storeId := chi.URLParam(r, "storeId")
 
-	if storeId ==""{
+	if storeId == "" {
 		response.Error(w, http.StatusBadRequest, "store doesn't exist")
 		return
 	}
@@ -93,21 +93,21 @@ func (h *handler) GetStore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetProductsByStore(w http.ResponseWriter, r *http.Request) {
-    storeID:=chi.URLParam(r, "storeId")
+	storeID := chi.URLParam(r, "storeId")
 
-    products, err := h.service.GetProductsByStore(
-        r.Context(),
-        storeID,
-    )
-    if err != nil {
-       switch{
-	   case errors.Is(err, ErrNoProducts):
-		response.JSON(w, http.StatusOK, map[string]any{"message":"no products found in store"} )
-		return
-	   default:
-		response.Error(w, http.StatusInternalServerError, "internal server error")
+	products, err := h.service.GetProductsByStore(
+		r.Context(),
+		storeID,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrNoProducts):
+			response.JSON(w, http.StatusOK, map[string]any{"message": "no products found in store"})
+			return
+		default:
+			response.Error(w, http.StatusInternalServerError, "internal server error")
+		}
 	}
-    }
 
 	response.JSON(w, http.StatusOK, map[string]any{"products": products})
 }

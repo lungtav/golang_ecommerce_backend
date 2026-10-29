@@ -108,9 +108,9 @@ func (s *svc) SignUp(ctx context.Context, req SignUpRequest) (db.User, error) {
 
 	url := s.frontendUrl + `/verify-email?token=` + rawToken
 
-		if err:=s.queries.CreateCart(ctx, user.ID); err!=nil{
-			slog.Error("create cart failed for user", "id", user.ID, "error", err)
-		}
+	if _, err := s.queries.CreateCart(ctx, user.ID); err != nil {
+		slog.Error("create cart failed for user", "id", user.ID, "error", err)
+	}
 
 	//send email
 	go func() {
@@ -170,8 +170,7 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 	}
 	defer tx.Rollback(ctx)
 
-	qtx:=s.queries.WithTx(tx)
-
+	qtx := s.queries.WithTx(tx)
 
 	//delete the old token if one exists
 	if err := qtx.DeleteVerificationToken(ctx, user.ID); err != nil {
@@ -187,7 +186,7 @@ func (s *svc) ResendVerification(ctx context.Context, req ResendVerificationRequ
 		return ErrServerError
 	}
 
-	if err := tx.Commit(ctx); err!=nil{
+	if err := tx.Commit(ctx); err != nil {
 		slog.Error("failed to commit transaction", "error", err)
 		return ErrServerError
 	}
@@ -215,7 +214,7 @@ func (s *svc) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error {
 		return ErrServerError
 	}
 
-	//if expired return	
+	//if expired return
 	if !storedToken.ExpiresAt.Valid || time.Now().After(storedToken.ExpiresAt.Time) {
 		return ErrInvalidToken
 	}
