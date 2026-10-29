@@ -19,14 +19,14 @@ func NewHandler(service Service) *handler {
 func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var req CreateProductsRequest
 
-	if !request.Decode(w, r, &req, 1 << 10 ){
+	if !request.Decode(w, r, &req, 1<<10) {
 		return
 	}
 
-	product, err:= h.service.CreateProduct(r.Context(), req)
+	product, err := h.service.CreateProduct(r.Context(), req)
 
-	if err!=nil{
-		switch{
+	if err != nil {
+		switch {
 		case errors.Is(err, ErrNoStore):
 			response.Error(w, http.StatusNotFound, "store doesnt exists")
 			return
