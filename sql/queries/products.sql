@@ -24,3 +24,9 @@ left join product_variants as pv
     and i.store_id = p.store_id
     where p.id = $1
 group by p.id, p.store_id, p.name, p.status, p.description, p.created_at;
+
+-- name: GetProductVariant :one
+select id, product_id from product_variants where id = $1 and product_id = $2;
+
+-- name: CreateProductCategory :exec
+insert into product_categories (product_id, category_id) values ($1, $2);
