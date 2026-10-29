@@ -25,3 +25,14 @@ func (q *Queries) CreateInventory(ctx context.Context, arg CreateInventoryParams
 	_, err := q.db.Exec(ctx, createInventory, arg.ProductVariantID, arg.StoreID, arg.Quantity)
 	return err
 }
+
+const getInventory = `-- name: GetInventory :one
+select quantity from inventories  where product_variant_id = $1
+`
+
+func (q *Queries) GetInventory(ctx context.Context, productVariantID pgtype.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, getInventory, productVariantID)
+	var quantity int32
+	err := row.Scan(&quantity)
+	return quantity, err
+}

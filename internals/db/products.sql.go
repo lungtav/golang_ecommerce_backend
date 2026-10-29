@@ -42,6 +42,20 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	return i, err
 }
 
+const createProductCategory = `-- name: CreateProductCategory :exec
+insert into product_categories (product_id, category_id) values ($1, $2)
+`
+
+type CreateProductCategoryParams struct {
+	ProductID  pgtype.UUID `json:"product_id"`
+	CategoryID pgtype.UUID `json:"category_id"`
+}
+
+func (q *Queries) CreateProductCategory(ctx context.Context, arg CreateProductCategoryParams) error {
+	_, err := q.db.Exec(ctx, createProductCategory, arg.ProductID, arg.CategoryID)
+	return err
+}
+
 const createProductVariant = `-- name: CreateProductVariant :one
 insert into product_variants (product_id, sku, size, color, price_in_kobo) values ($1, $2, $3, $4, $5) returning id, product_id, sku, size, color, price_in_kobo, created_at, updated_at
 `
@@ -120,5 +134,26 @@ func (q *Queries) GetProduct(ctx context.Context, id pgtype.UUID) (GetProductRow
 		&i.CreatedAt,
 		&i.Variants,
 	)
+	return i, err
+}
+
+const getProductVariant = `-- name: GetProductVariant :one
+select id, product_id from product_variants where id = $1 and product_id = $2
+`
+
+type GetProductVariantParams struct {
+	ID        pgtype.UUID `json:"id"`
+	ProductID pgtype.UUID `json:"product_id"`
+}
+
+type GetProductVariantRow struct {
+	ID        pgtype.UUID `json:"id"`
+	ProductID pgtype.UUID `json:"product_id"`
+}
+
+func (q *Queries) GetProductVariant(ctx context.Context, arg GetProductVariantParams) (GetProductVariantRow, error) {
+	row := q.db.QueryRow(ctx, getProductVariant, arg.ID, arg.ProductID)
+	var i GetProductVariantRow
+	err := row.Scan(&i.ID, &i.ProductID)
 	return i, err
 }
