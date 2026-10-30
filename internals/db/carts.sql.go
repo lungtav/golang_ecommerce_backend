@@ -113,6 +113,18 @@ func (q *Queries) GetCartItems(ctx context.Context, userID pgtype.UUID) ([]GetCa
 	return items, nil
 }
 
+const getCartTotal = `-- name: GetCartTotal :one
+select coalesce(sum(ci.quantity::bigint * pv.price_in_kobo), 0)::bigint AS total_in_kobo
+from cart_items ci join carts c on c.id = ci.cart_id join product_variants pv on pv.id = ci.product_variant_id where c.user_id = $1
+`
+
+func (q *Queries) GetCartTotal(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getCartTotal, userID)
+	var total_in_kobo int64
+	err := row.Scan(&total_in_kobo)
+	return total_in_kobo, err
+}
+
 const updateCartItem = `-- name: UpdateCartItem :execrows
 update cart_items set quantity = $1, updated_at = now() where cart_id = $2 and product_variant_id = $3
 `

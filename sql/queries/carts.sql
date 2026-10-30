@@ -16,3 +16,7 @@ update cart_items set quantity = $1, updated_at = now() where cart_id = $2 and p
 -- name: GetCartItems :many
 select ci.product_id, ci.product_variant_id, ci.quantity, p.name as product_name, pv.size, pv.price_in_kobo, (ci.quantity * pv.price_in_kobo) as line_total
 from cart_items ci join carts c on c.id = ci.cart_id join products p on p.id = ci.product_id join product_variants pv on pv.id = ci.product_variant_id where c.user_id = $1 order by ci.created_at;
+
+-- name: GetCartTotal :one
+select coalesce(sum(ci.quantity::bigint * pv.price_in_kobo), 0)::bigint AS total_in_kobo
+from cart_items ci join carts c on c.id = ci.cart_id join product_variants pv on pv.id = ci.product_variant_id where c.user_id = $1;

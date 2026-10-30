@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearCart = `-- name: ClearCart :exec
+delete from cart_items where cart_id = $1
+`
+
+func (q *Queries) ClearCart(ctx context.Context, cartID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, clearCart, cartID)
+	return err
+}
+
 const createInventory = `-- name: CreateInventory :exec
 insert into inventories (product_variant_id, store_id, quantity) values ($1, $2, $3)
 `
@@ -24,6 +33,23 @@ type CreateInventoryParams struct {
 func (q *Queries) CreateInventory(ctx context.Context, arg CreateInventoryParams) error {
 	_, err := q.db.Exec(ctx, createInventory, arg.ProductVariantID, arg.StoreID, arg.Quantity)
 	return err
+}
+
+const decrementInventory = `-- name: DecrementInventory :execrows
+update inventories set quantity = quantity - $2, updated_at = now() where product_variant_id = $1 and quantity >= $2
+`
+
+type DecrementInventoryParams struct {
+	ProductVariantID pgtype.UUID `json:"product_variant_id"`
+	Quantity         int32       `json:"quantity"`
+}
+
+func (q *Queries) DecrementInventory(ctx context.Context, arg DecrementInventoryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, decrementInventory, arg.ProductVariantID, arg.Quantity)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getInventory = `-- name: GetInventory :one
