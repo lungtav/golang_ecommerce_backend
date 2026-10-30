@@ -70,6 +70,49 @@ func (q *Queries) GetCartItemQuantity(ctx context.Context, arg GetCartItemQuanti
 	return quantity, err
 }
 
+const getCartItems = `-- name: GetCartItems :many
+select ci.product_id, ci.product_variant_id, ci.quantity, p.name as product_name, pv.size, pv.price_in_kobo, (ci.quantity * pv.price_in_kobo) as line_total
+from cart_items ci join carts c on c.id = ci.cart_id join products p on p.id = ci.product_id join product_variants pv on pv.id = ci.product_variant_id where c.user_id = $1 order by ci.created_at
+`
+
+type GetCartItemsRow struct {
+	ProductID        pgtype.UUID `json:"product_id"`
+	ProductVariantID pgtype.UUID `json:"product_variant_id"`
+	Quantity         int32       `json:"quantity"`
+	ProductName      string      `json:"product_name"`
+	Size             pgtype.Text `json:"size"`
+	PriceInKobo      int32       `json:"price_in_kobo"`
+	LineTotal        int32       `json:"line_total"`
+}
+
+func (q *Queries) GetCartItems(ctx context.Context, userID pgtype.UUID) ([]GetCartItemsRow, error) {
+	rows, err := q.db.Query(ctx, getCartItems, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCartItemsRow
+	for rows.Next() {
+		var i GetCartItemsRow
+		if err := rows.Scan(
+			&i.ProductID,
+			&i.ProductVariantID,
+			&i.Quantity,
+			&i.ProductName,
+			&i.Size,
+			&i.PriceInKobo,
+			&i.LineTotal,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCartItem = `-- name: UpdateCartItem :execrows
 update cart_items set quantity = $1, updated_at = now() where cart_id = $2 and product_variant_id = $3
 `

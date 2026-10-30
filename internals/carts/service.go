@@ -13,6 +13,7 @@ import (
 
 type Service interface {
 	AddToCart(ctx context.Context, req AddToCartRequest, userId string) error
+	GetCartItems(ctx context.Context, userId string) ([]db.GetCartItemsRow, error)
 }
 
 type svc struct {
@@ -28,6 +29,7 @@ var (
 	ErrNoProduct      = errors.New("product to be added to cart doesnt exist")
 	ErrOutOfStock     = errors.New("product sold out")
 	ErrNotEnoughStock = errors.New("quantity available is lesser than you wish to purchase")
+	ErrNoCartItem     = errors.New("no item currently in cart")
 )
 
 func (s *svc) AddToCart(ctx context.Context, req AddToCartRequest, userId string) error {
@@ -134,4 +136,26 @@ func (s *svc) AddToCart(ctx context.Context, req AddToCartRequest, userId string
 		return nil
 	}
 	return nil
+}
+
+func (s *svc) GetCartItems(ctx context.Context, userId string) ([]db.GetCartItemsRow, error) {
+	var userID pgtype.UUID
+
+	if err := userID.Scan(userId); err != nil {
+		slog.Error("failed to convert user id to uuid pgtype", "error", err)
+		return []db.GetCartItemsRow{}, err
+	}
+
+	cart, err := s.queries.GetCartItems(ctx, userID)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []db.GetCartItemsRow{}, ErrNoCartItem
+		}
+
+		slog.Error("get cart item failed", "error", err)
+		return []db.GetCartItemsRow{}, err
+	}
+
+	return cart, nil
 }

@@ -81,6 +81,7 @@ func (app *application) mount() http.Handler {
 	r.Route("/carts", func(r chi.Router) {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", cartsHandler.AddToCart)
+		r.Get("/", cartsHandler.GetCartItems)
 	})
 
 	return r
