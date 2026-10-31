@@ -29,6 +29,7 @@ func main() {
 		resendApiKey: env.Get("RESEND_API_KEY", ""),
 		jwtSecretKey: env.Get("JWT_SECRET_KEY", ""),
 		frontendUrl:  env.Get("FRONTEND_URL", ""),
+		paystackSecretKey: env.Get("PAYSTACK_SECRET_KEY", ""),
 	}
 
 	if cfg.db.dsn == "" {
@@ -47,6 +48,11 @@ func main() {
 
 	if cfg.jwtSecretKey == "" {
 		slog.Error("missing required env", "key", "JWT_SECRET")
+		os.Exit(1)
+
+	}
+	if cfg.paystackSecretKey == "" {
+		slog.Error("missing required env", "key", "PAYSTACK_SECRET_KEY")
 		os.Exit(1)
 	}
 
