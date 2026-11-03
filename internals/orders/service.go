@@ -65,11 +65,13 @@ func (s *svc) CreateOrder(ctx context.Context, userId string) (OrderResult, erro
 
 	items, err := qtx.GetCartItems(ctx, userID)
 
+	if len(items) == 0{
+		return OrderResult{}, ErrEmptyCart
+	}
+
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return OrderResult{}, ErrEmptyCart
-		}
 		slog.Error("get cart items failed", "error", err)
+		return OrderResult{}, err
 	}
 
 	cartAmount, err := qtx.GetCartTotal(ctx, userID)
@@ -83,7 +85,7 @@ func (s *svc) CreateOrder(ctx context.Context, userId string) (OrderResult, erro
 	orderID, err := qtx.CreateOrder(ctx, db.CreateOrderParams{
 		UserID:   userID,
 		Status:   "pending",
-		Amount:   int32(cartAmount),
+		Amount:   int64(cartAmount),
 		Currency: "NGN",
 	})
 	if err != nil {
