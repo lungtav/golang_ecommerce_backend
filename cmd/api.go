@@ -12,6 +12,7 @@ import (
 	"github.com/lungtav/golang_ecommerce_backend/internals/categories"
 	"github.com/lungtav/golang_ecommerce_backend/internals/db"
 	"github.com/lungtav/golang_ecommerce_backend/internals/orders"
+	"github.com/lungtav/golang_ecommerce_backend/internals/payments"
 
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/mailer"
 	mw "github.com/lungtav/golang_ecommerce_backend/internals/platform/middleware"
@@ -34,6 +35,7 @@ func (app *application) mount() http.Handler {
 	jwtSecret := app.config.jwtSecretKey
 	frontendUrl := app.config.frontendUrl
 	pool := app.db
+	paystack:= app.paystack
 
 	//auth
 	authService := auth.NewService(queries, mailer, jwtSecret, frontendUrl, pool)
@@ -84,12 +86,18 @@ func (app *application) mount() http.Handler {
 		r.Get("/", cartsHandler.GetCartItems)
 	})
 
+	//payments
+	paymentsService:=payments.NewService(queries, paystack, pool)
+	paymentsHandler := payments.NewHandler(paymentsService, app.config.paystackSecretKey)
+
 	//orders
 	ordersService := orders.NewService(queries, pool)
 	ordersHandler := orders.NewHandler(ordersService)
 	r.Route("/orders", func(r chi.Router) {
 		r.Use(mw.Auth(jwtSecret))
 		r.Post("/", ordersHandler.CreateOrder)
+		r.Post("/{orderId}/pay", paymentsHandler.PayOrder)
+		r.Post("/payments/webhook", paymentsHandler.Webhook)
 	})
 
 	return r

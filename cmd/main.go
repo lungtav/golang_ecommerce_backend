@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/lungtav/golang_ecommerce_backend/internals/payments"
 	"github.com/lungtav/golang_ecommerce_backend/internals/platform/env"
 )
 
@@ -69,9 +70,12 @@ func main() {
 	}
 	defer pool.Close()
 
+	paystack:= payments.NewPaystackClient(cfg.paystackSecretKey)
+
 	api := application{
 		config: cfg,
 		db:     pool,
+		paystack: paystack,
 	}
 
 	if err := api.run(api.mount()); err != nil {
