@@ -4,7 +4,7 @@ create table if not exists orders(
     user_id uuid not null references users(id),
     status varchar(10) not null default 'pending'
         check (status in ('successful', 'pending', 'failed')),
-    amount integer not null,
+    amount bigint not null check (amount > 0),
     currency varchar(3) not null default 'NGN'
         check (currency in ('NGN')),
     created_at timestamptz not null default now(),
