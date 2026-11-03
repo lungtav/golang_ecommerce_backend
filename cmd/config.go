@@ -6,17 +6,17 @@ import (
 )
 
 type application struct {
-	config config
-	db     *pgxpool.Pool
+	config   config
+	db       *pgxpool.Pool
 	paystack payments.Initializer
 }
 
 type config struct {
-	addr         string
-	db           dbConfig
-	resendApiKey string
-	jwtSecretKey string
-	frontendUrl  string
+	addr              string
+	db                dbConfig
+	resendApiKey      string
+	jwtSecretKey      string
+	frontendUrl       string
 	paystackSecretKey string
 }
 

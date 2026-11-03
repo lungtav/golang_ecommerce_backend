@@ -13,81 +13,79 @@ import (
 )
 
 type Service interface {
-	PayOrder (ctx context.Context, orderId string, userId string) (string, error)
+	PayOrder(ctx context.Context, orderId string, userId string) (string, error)
 	HandleChargeSuccess(ctx context.Context, ev ChargeSuccess) error
 }
 
 type svc struct {
-	queries *db.Queries
+	queries  *db.Queries
 	paystack Initializer
-	pool *pgxpool.Pool
+	pool     *pgxpool.Pool
 }
 
-func NewService (queries *db.Queries, paystack Initializer, pool *pgxpool.Pool) Service{
+func NewService(queries *db.Queries, paystack Initializer, pool *pgxpool.Pool) Service {
 	return &svc{queries: queries, paystack: paystack}
 }
 
-
-var(
+var (
 	ErrNoOrder = errors.New("order doesnt exist")
-	ErrNoUser = errors.New("user doesnt exist")
+	ErrNoUser  = errors.New("user doesnt exist")
 )
 
-func (s *svc) PayOrder (ctx context.Context, orderId string, userId string) (string, error){
+func (s *svc) PayOrder(ctx context.Context, orderId string, userId string) (string, error) {
 	var orderID pgtype.UUID
 	var userID pgtype.UUID
 
-	if err:= orderID.Scan(orderId); err!=nil{
+	if err := orderID.Scan(orderId); err != nil {
 		slog.Error("failed to convert orderid to uuid")
 		return "", err
 	}
-	
-	if err:= userID.Scan(userId); err!=nil{
+
+	if err := userID.Scan(userId); err != nil {
 		slog.Error("failed to convert userid to uuid")
 		return "", err
 	}
 
 	//get user
-	user, err:=s.queries.GetUserById(ctx, userID)
+	user, err := s.queries.GetUserById(ctx, userID)
 
-	if errors.Is(err, pgx.ErrNoRows){
+	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNoUser
 	}
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("get user by id failed", "error", err)
 		return "", err
 	}
-	
 
 	//find the order with id
-	order, err:= s.queries.GetOrderById(ctx, db.GetOrderByIdParams{
-		ID: orderID,
+	order, err := s.queries.GetOrderById(ctx, db.GetOrderByIdParams{
+		ID:     orderID,
 		UserID: userID,
 	})
-	if errors.Is(err, pgx.ErrNoRows){
+	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNoOrder
 	}
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("get order by id failed", "error", err)
 		return "", err
 	}
 
 	//create payment
-	paymentID, err:= s.queries.CreatePayment(ctx, db.CreatePaymentParams{
-		OrderID: orderID,
+	paymentID, err := s.queries.CreatePayment(ctx, db.CreatePaymentParams{
+		OrderID:      orderID,
 		AmountInKobo: int64(order.Amount),
 	})
 
-	if err!=nil{
+	if err != nil {
 		slog.Error("create payment failed", "error", err)
 		return "", err
 	}
 
-	authorization_url, err:= s.paystack.Initialize(ctx, int64(order.Amount), user.Email, paymentID.String())
-	
-	if err!=nil{
+	authorization_url, err := s.paystack.Initialize(ctx, int64(order.Amount), user.Email, paymentID.String())
+
+	if err != nil {
 		slog.Error("paystack initialization failed", "error", err)
 
 		if err := s.queries.MarkPaymentFailed(context.WithoutCancel(ctx), paymentID); err != nil {
@@ -118,7 +116,7 @@ func (s *svc) HandleChargeSuccess(ctx context.Context, ev ChargeSuccess) error {
 	if ev.Currency != "NGN" || ev.Amount != payment.AmountInKobo {
 		slog.Error("webhook amount mismatch", "payment_id", ev.Reference,
 			"expected", payment.AmountInKobo, "got", ev.Amount, "currency", ev.Currency)
-		return nil 
+		return nil
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -128,7 +126,6 @@ func (s *svc) HandleChargeSuccess(ctx context.Context, ev ChargeSuccess) error {
 	defer tx.Rollback(ctx)
 	qtx := s.queries.WithTx(tx)
 
-	
 	n, err := qtx.MarkPaymentSucceeded(ctx, db.MarkPaymentSucceededParams{
 		ID:                pid,
 		PaymentMethod:     pgtype.Text{String: ev.Channel, Valid: true},
@@ -139,7 +136,7 @@ func (s *svc) HandleChargeSuccess(ctx context.Context, ev ChargeSuccess) error {
 		return err
 	}
 	if n == 0 {
-		return nil 
+		return nil
 	}
 
 	m, err := qtx.MarkOrderPaid(ctx, payment.OrderID)

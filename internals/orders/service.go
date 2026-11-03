@@ -65,7 +65,7 @@ func (s *svc) CreateOrder(ctx context.Context, userId string) (OrderResult, erro
 
 	items, err := qtx.GetCartItems(ctx, userID)
 
-	if len(items) == 0{
+	if len(items) == 0 {
 		return OrderResult{}, ErrEmptyCart
 	}
 

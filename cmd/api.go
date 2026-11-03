@@ -35,7 +35,7 @@ func (app *application) mount() http.Handler {
 	jwtSecret := app.config.jwtSecretKey
 	frontendUrl := app.config.frontendUrl
 	pool := app.db
-	paystack:= app.paystack
+	paystack := app.paystack
 
 	//auth
 	authService := auth.NewService(queries, mailer, jwtSecret, frontendUrl, pool)
@@ -87,7 +87,7 @@ func (app *application) mount() http.Handler {
 	})
 
 	//payments
-	paymentsService:=payments.NewService(queries, paystack, pool)
+	paymentsService := payments.NewService(queries, paystack, pool)
 	paymentsHandler := payments.NewHandler(paymentsService, app.config.paystackSecretKey)
 
 	//orders

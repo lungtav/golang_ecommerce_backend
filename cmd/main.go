@@ -27,9 +27,9 @@ func main() {
 		db: dbConfig{
 			dsn: env.Get("GOOSE_DBSTRING", ""),
 		},
-		resendApiKey: env.Get("RESEND_API_KEY", ""),
-		jwtSecretKey: env.Get("JWT_SECRET_KEY", ""),
-		frontendUrl:  env.Get("FRONTEND_URL", ""),
+		resendApiKey:      env.Get("RESEND_API_KEY", ""),
+		jwtSecretKey:      env.Get("JWT_SECRET_KEY", ""),
+		frontendUrl:       env.Get("FRONTEND_URL", ""),
 		paystackSecretKey: env.Get("PAYSTACK_SECRET_KEY", ""),
 	}
 
@@ -70,11 +70,11 @@ func main() {
 	}
 	defer pool.Close()
 
-	paystack:= payments.NewPaystackClient(cfg.paystackSecretKey)
+	paystack := payments.NewPaystackClient(cfg.paystackSecretKey)
 
 	api := application{
-		config: cfg,
-		db:     pool,
+		config:   cfg,
+		db:       pool,
 		paystack: paystack,
 	}
 

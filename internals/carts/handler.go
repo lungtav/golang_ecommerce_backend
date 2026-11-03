@@ -52,7 +52,7 @@ func (h *handler) AddToCart(w http.ResponseWriter, r *http.Request) {
 func (h *handler) GetCartItems(w http.ResponseWriter, r *http.Request) {
 	userId, ok := middleware.UserId(r.Context())
 	if !ok {
-		response.Error(w, http.StatusUnauthorized, "unauhorixed")
+		response.Error(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 

@@ -14,8 +14,7 @@ import (
 
 type handler struct {
 	service Service
-secret string
-
+	secret  string
 }
 
 func NewHandler(service Service, secret string) *handler {
@@ -24,17 +23,17 @@ func NewHandler(service Service, secret string) *handler {
 
 func (h *handler) PayOrder(w http.ResponseWriter, r *http.Request) {
 
-	orderID:= chi.URLParam(r, "orderId")
+	orderID := chi.URLParam(r, "orderId")
 
-	userId, ok :=middleware.UserId(r.Context())
-	if !ok{
+	userId, ok := middleware.UserId(r.Context())
+	if !ok {
 		response.Error(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	url, err:=h.service.PayOrder(r.Context(), orderID, userId )
-	if err!=nil{
-		switch{
+	url, err := h.service.PayOrder(r.Context(), orderID, userId)
+	if err != nil {
+		switch {
 		case errors.Is(err, ErrNoOrder):
 			response.Error(w, http.StatusConflict, "order doesnt exists")
 			return
@@ -47,7 +46,7 @@ func (h *handler) PayOrder(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.JSON(w, http.StatusOK, map[string]any{"url": url })
+	response.JSON(w, http.StatusOK, map[string]any{"url": url})
 
 }
 
