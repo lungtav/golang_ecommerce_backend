@@ -61,6 +61,31 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	return i, err
 }
 
+const getUserById = `-- name: GetUserById :one
+select id, name, email, password_hash, email_verified_at from users where id = $1 limit 1
+`
+
+type GetUserByIdRow struct {
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	Email           string             `json:"email"`
+	PasswordHash    string             `json:"password_hash"`
+	EmailVerifiedAt pgtype.Timestamptz `json:"email_verified_at"`
+}
+
+func (q *Queries) GetUserById(ctx context.Context, id pgtype.UUID) (GetUserByIdRow, error) {
+	row := q.db.QueryRow(ctx, getUserById, id)
+	var i GetUserByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PasswordHash,
+		&i.EmailVerifiedAt,
+	)
+	return i, err
+}
+
 const markEmailVerified = `-- name: MarkEmailVerified :exec
 update users set email_verified_at = now(), updated_at =now() where id =$1
 `

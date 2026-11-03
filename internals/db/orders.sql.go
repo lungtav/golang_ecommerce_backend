@@ -18,7 +18,7 @@ insert into orders (user_id, status, amount, currency) values ($1 , $2, $3, $4) 
 type CreateOrderParams struct {
 	UserID   pgtype.UUID `json:"user_id"`
 	Status   string      `json:"status"`
-	Amount   int32       `json:"amount"`
+	Amount   int64       `json:"amount"`
 	Currency string      `json:"currency"`
 }
 
@@ -53,4 +53,28 @@ func (q *Queries) CreateOrderItems(ctx context.Context, arg CreateOrderItemsPara
 		arg.Quantity,
 	)
 	return err
+}
+
+const getOrderById = `-- name: GetOrderById :one
+select id, user_id, status, amount, currency, created_at, updated_at from orders where id = $1 and user_id = $2 and status = 'pending'
+`
+
+type GetOrderByIdParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetOrderById(ctx context.Context, arg GetOrderByIdParams) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderById, arg.ID, arg.UserID)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Status,
+		&i.Amount,
+		&i.Currency,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

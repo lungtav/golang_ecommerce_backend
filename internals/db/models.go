@@ -43,7 +43,7 @@ type Order struct {
 	ID        pgtype.UUID        `json:"id"`
 	UserID    pgtype.UUID        `json:"user_id"`
 	Status    string             `json:"status"`
-	Amount    int32              `json:"amount"`
+	Amount    int64              `json:"amount"`
 	Currency  string             `json:"currency"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
@@ -61,11 +61,11 @@ type Payment struct {
 	ID                pgtype.UUID        `json:"id"`
 	OrderID           pgtype.UUID        `json:"order_id"`
 	Provider          string             `json:"provider"`
-	ProviderPaymentID string             `json:"provider_payment_id"`
+	ProviderPaymentID pgtype.Text        `json:"provider_payment_id"`
 	Currency          string             `json:"currency"`
-	Amount            int32              `json:"amount"`
+	AmountInKobo      int64              `json:"amount_in_kobo"`
 	Status            string             `json:"status"`
-	PaymentMethod     string             `json:"payment_method"`
+	PaymentMethod     pgtype.Text        `json:"payment_method"`
 	PaidAt            pgtype.Timestamptz `json:"paid_at"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
