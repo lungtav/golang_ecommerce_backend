@@ -9,3 +9,6 @@ insert into users (email, password_hash, name) values ($1, $2, $3) returning *;
 
 -- name: VerifyUser :exec
 update users set email_verified_at = $1, updated_at=now() where email =$2;
+
+-- name: GetUserById :one
+select id, name, email, password_hash, email_verified_at from users where id = $1 limit 1;
